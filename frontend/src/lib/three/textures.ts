@@ -41,7 +41,11 @@ export class TextureLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         url,
-        (texture) => resolve(texture.image as HTMLImageElement),
+        (texture) => {
+          const image = texture.image as HTMLImageElement
+          texture.dispose()
+          resolve(image)
+        },
         undefined,
         () => reject(new Error(`No se pudo cargar la imagen: ${url}`)),
       )

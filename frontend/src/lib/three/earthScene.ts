@@ -32,6 +32,8 @@ export interface EarthSceneOptions {
   autoRotate?: boolean
   /** How far off-centre the planet sits, as a fraction of the canvas width. */
   horizontalOffset?: number
+  /** Uses even ambient lighting so data layers remain visible everywhere. */
+  dataMode?: boolean
   onProgress?: (ratio: number) => void
   onTelemetry?: (telemetry: EarthTelemetry | null) => void
 }
@@ -68,8 +70,12 @@ export class EarthScene {
   private readonly cloudMaterial: THREE.MeshStandardMaterial
   private readonly atmosphereMaterial: THREE.ShaderMaterial
 
+  private readonly cameraSunDirection = new THREE.Vector3(0.7, 0.25, 0.67).normalize()
   private readonly sunDirection = new THREE.Vector3(0.85, 0.32, 0.55).normalize()
   private readonly sunDirectionView = new THREE.Vector3()
+  private readonly sunLight = new THREE.DirectionalLight(0xfff6ec, 3.4)
+  private readonly fillLight = new THREE.HemisphereLight(0x2c4266, 0x060a12, 0.35)
+  private readonly dataAmbientLight = new THREE.AmbientLight(0x9bbbe8, 0)
   private readonly disposables: Array<{ dispose: () => void }> = []
   private readonly raycaster = new THREE.Raycaster()
   private readonly pointer = new THREE.Vector2()
@@ -243,12 +249,15 @@ export class EarthScene {
     })
 
     this.buildScene()
+    this.setDataMode(options.dataMode ?? false)
 
     this.handleResize = this.handleResize.bind(this)
     this.handleVisibility = this.handleVisibility.bind(this)
     this.handlePointerMove = this.handlePointerMove.bind(this)
     this.handlePointerLeave = this.handlePointerLeave.bind(this)
     this.tick = this.tick.bind(this)
+    this.handleControlStart = this.handleControlStart.bind(this)
+    this.controls.addEventListener('start', this.handleControlStart)
 
     window.addEventListener('resize', this.handleResize)
     document.addEventListener('visibilitychange', this.handleVisibility)
@@ -270,15 +279,14 @@ export class EarthScene {
 
   private buildScene() {
     // --- lighting -----------------------------------------------------------
-    const sun = new THREE.DirectionalLight(0xfff6ec, 3.4)
-    sun.position.copy(this.sunDirection).multiplyScalar(100)
-    this.scene.add(sun)
-    this.disposables.push(sun)
+    this.sunLight.position.copy(this.sunDirection).multiplyScalar(100)
+    this.scene.add(this.sunLight)
+    this.disposables.push(this.sunLight)
 
     // subtle blue bounce so the night side never turns into a black hole
-    const fill = new THREE.HemisphereLight(0x2c4266, 0x060a12, 0.35)
-    this.scene.add(fill)
-    this.disposables.push(fill)
+    this.scene.add(this.fillLight)
+    this.scene.add(this.dataAmbientLight)
+    this.disposables.push(this.fillLight, this.dataAmbientLight)
 
     // --- planet -------------------------------------------------------------
     this.tiltGroup.rotation.z = AXIAL_TILT
@@ -393,7 +401,7 @@ export class EarthScene {
           '#include <emissivemap_fragment>',
           /* glsl */ `#include <emissivemap_fragment>
             float sunAmount = clamp(dot(normalize(vNormal), uSunDirection), -1.0, 1.0);
-            float nightFactor = smoothstep(0.12, -0.18, sunAmount);
+            float nightFactor = 1.0 - smoothstep(-0.18, 0.12, sunAmount);
             totalEmissiveRadiance *= nightFactor;
           `,
         )
@@ -412,21 +420,23 @@ export class EarthScene {
   async load(): Promise<void> {
     const loader = new TextureLoader(this.options.onProgress)
 
-    const [day, night, specular, normal, specularImage, cloudsImage] = await Promise.all([
+    const [day, night, specular, normal, cloudsImage] = await Promise.all([
       loader.load(TEXTURES.day, { srgb: true }),
       loader.load(TEXTURES.night, { srgb: true }),
       loader.load(TEXTURES.specular),
       loader.load(TEXTURES.normal),
-      loader.loadImage(TEXTURES.specular),
       loader.loadImage(TEXTURES.clouds),
     ])
 
-    this.disposables.push(day, night, specular, normal)
+    this.disposables.push(day, night, normal)
 
     this.earthMaterial.map = day
     this.earthMaterial.emissiveMap = night
     this.earthMaterial.emissiveIntensity = 1.25
-    this.earthMaterial.roughnessMap = createRoughnessFromSpecular(specularImage)
+    const roughness = createRoughnessFromSpecular(specular.image as HTMLImageElement)
+    this.earthMaterial.roughnessMap = roughness
+    this.disposables.push(roughness)
+    specular.dispose()
     this.earthMaterial.normalMap = normal
     this.earthMaterial.needsUpdate = true
 
@@ -477,6 +487,17 @@ export class EarthScene {
     }
   }
 
+  /** Uses camera-relative sunlight for exploration or even ambient light for data. */
+  setDataMode(enabled: boolean) {
+    this.fillLight.intensity = enabled ? 1.05 : 0.35
+    this.dataAmbientLight.intensity = enabled ? 0.72 : 0
+    this.sunLight.intensity = enabled ? 2.2 : 3.4
+  }
+
+  private handleControlStart() {
+    this.userZoomed = true
+  }
+
   /**
    * Turns the pointer position into geographic coordinates. The globe keeps
    * rotating under the cursor, so the readout follows whatever is under the
@@ -519,20 +540,20 @@ export class EarthScene {
     // clouds drift a little faster than the solid surface
     this.cloudGroup.rotation.y += this.spinSpeed * 0.06 * delta
 
-    // sun direction in view space, used by the night-lights shader patch
-    this.sunDirectionView.copy(this.sunDirection).transformDirection(this.camera.matrixWorldInverse)
+    this.controls.update()
+
+    // Keep a stable terminator on the visible disk. Data mode adds ambient
+    // light so a value never disappears just because it is on the night side.
+    this.sunDirection.copy(this.cameraSunDirection).transformDirection(this.camera.matrixWorld)
+    this.sunLight.position.copy(this.sunDirection).multiplyScalar(100)
+    this.sunDirectionView.copy(this.cameraSunDirection)
+    this.atmosphereMaterial.uniforms.uSunDirection.value.copy(this.sunDirection)
     const shader = this.earthMaterial.userData.shader
     if (shader) {
       shader.uniforms.uSunDirection.value.copy(this.sunDirectionView)
     }
 
-    this.controls.update()
     this.renderer.render(this.scene, this.camera)
-
-    // Detect a manual zoom so the automatic framing stops overriding it.
-    if (!this.userZoomed && Math.abs(this.camera.position.length() - this.idealDistance) > 0.15) {
-      this.userZoomed = true
-    }
 
     this.frame = requestAnimationFrame(this.tick)
   }
@@ -548,6 +569,7 @@ export class EarthScene {
     this.resizeObserver.disconnect()
 
     this.controls.dispose()
+    this.controls.removeEventListener('start', this.handleControlStart)
     this.earthMaterial.dispose()
     this.cloudMaterial.dispose()
     this.atmosphereMaterial.dispose()

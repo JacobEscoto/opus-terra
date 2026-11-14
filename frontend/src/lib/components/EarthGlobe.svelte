@@ -9,9 +9,11 @@
     onProgress?: (ratio: number) => void
     /** How far off-centre the planet sits, as a fraction of the canvas width. */
     horizontalOffset?: number
+    /** Keeps the whole globe readable when a data layer is active. */
+    dataMode?: boolean
   }
 
-  let { onTelemetry, onProgress, horizontalOffset = 0 }: Props = $props()
+  let { onTelemetry, onProgress, horizontalOffset = 0, dataMode = false }: Props = $props()
 
   let canvas: HTMLCanvasElement
   let status = $state<'loading' | 'ready' | 'error'>('loading')
@@ -23,6 +25,7 @@
       onTelemetry,
       onProgress,
       horizontalOffset,
+      dataMode,
     })
     sceneRef = scene
 
@@ -44,6 +47,7 @@
 
   $effect(() => {
     sceneRef?.setHorizontalOffset(horizontalOffset)
+    sceneRef?.setDataMode(dataMode)
   })
 </script>
 
