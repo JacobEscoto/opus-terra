@@ -86,6 +86,23 @@ def _crear_pares(registros: list[dict]) -> list[dict]:
     return pares
 
 
+def _serializar_resultado(contenido: dict) -> str:
+    """Mantiene legible el JSON, pero evita indentar la lista de píxeles."""
+    marcador = "__RESULTADOS_PIXELES_COMPACTOS__"
+    copia = {**contenido, "resultados_pixeles": marcador}
+    texto = json.dumps(copia, ensure_ascii=False, indent=2, allow_nan=False)
+    compactos = json.dumps(
+        contenido["resultados_pixeles"],
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    reemplazo = json.dumps(marcador, ensure_ascii=False)
+    if texto.count(reemplazo) != 1:
+        raise RuntimeError("No se pudo compactar resultados_pixeles de forma segura")
+    return texto.replace(reemplazo, compactos) + "\n"
+
+
 def _cargar_malla_t2m() -> xr.DataArray:
     rutas = sorted((RAW / "merra2_slv").glob("*.nc"))
     por_mes: dict[pd.Period, Path] = {}
@@ -157,6 +174,7 @@ def _analizar_malla(
                 "coeficiente_enso": float(coeficientes[(lat, lon)]),
                 "r2_enso": float(r2[(lat, lon)]),
                 "n_anios": int(len(serie)),
+                "valores_anuales": [round(float(valor), 4) for valor in serie],
                 "valor_anual_inicial": float(serie[0]),
                 "valor_anual_final": float(serie[-1]),
                 "cambio_porcentual": float(
@@ -271,7 +289,29 @@ def main() -> None:
         ("imerg_precipitacion.json", imerg),
         ("mod13c2_ndvi.json", ndvi),
     ):
-        (OUTPUT / nombre).write_text(json.dumps(contenido, ensure_ascii=False, indent=2) + "\n")
+        ruta_salida = OUTPUT / nombre
+        tamano_anterior = ruta_salida.stat().st_size if ruta_salida.exists() else 0
+        contenido_exportado = contenido
+        texto = _serializar_resultado(contenido_exportado)
+        limitado_a_significativos = False
+        if len(texto.encode("utf-8")) > 3_000_000 and contenido["resultados_pixeles"]:
+            contenido_exportado = {
+                **contenido,
+                "resultados_pixeles": [
+                    registro
+                    for registro in contenido["resultados_pixeles"]
+                    if registro["significativa_fdr"]
+                ],
+            }
+            texto = _serializar_resultado(contenido_exportado)
+            limitado_a_significativos = True
+        ruta_salida.write_text(texto, encoding="utf-8")
+        tamano_nuevo = ruta_salida.stat().st_size
+        print(
+            f"{nombre}: tamaño {tamano_anterior / 1_000_000:.2f} MB -> "
+            f"{tamano_nuevo / 1_000_000:.2f} MB"
+            + (" (solo celdas significativas)" if limitado_a_significativos else "")
+        )
         print(f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR")
 
 

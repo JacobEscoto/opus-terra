@@ -52,6 +52,7 @@ export interface ResultadoPixel {
   direccion: string
   sen_unidad_por_anio: number
   significativa_fdr: boolean
+  valores_anuales?: number[]
 }
 
 /** Respuesta completa del análisis de tendencias. */

@@ -133,6 +133,13 @@ function validarPixel(valor: unknown, indice: number): ResultadoPixel {
   if (numericos.some((campo) => typeof pixel[campo] !== 'number' || !Number.isFinite(pixel[campo]))) {
     fallar(`El resultado de píxel ${indice + 1} tiene valores numéricos inválidos.`)
   }
+  if (
+    pixel.valores_anuales !== undefined &&
+    (!Array.isArray(pixel.valores_anuales) ||
+      pixel.valores_anuales.some((valor) => typeof valor !== 'number' || !Number.isFinite(valor)))
+  ) {
+    fallar(`El resultado de píxel ${indice + 1} tiene valores anuales inválidos.`)
+  }
   if (typeof pixel.direccion !== 'string' || typeof pixel.significativa_fdr !== 'boolean') {
     fallar(`El resultado de píxel ${indice + 1} está incompleto.`)
   }

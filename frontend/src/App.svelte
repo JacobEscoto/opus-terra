@@ -99,6 +99,9 @@
     dataMode={parSeleccionado !== null}
     celdas={preparacion?.celdas ?? []}
     capaVisible={capaTendenciaVisible}
+    anio={anio}
+    anios={datos?.periodo.anios_completos ?? []}
+    escalaMaxima={preparacion?.escalaMaxima}
   />
 
 <main class="interface">
@@ -136,7 +139,7 @@
            fin={datos.periodo.fin}
            bind:anio
            disponible={anualesDisponibles}
-           aviso="Vista por año disponible en una versión futura"
+           aviso="Esta variable no incluye una serie anual por celda."
         />
       {/if}
     </div>
@@ -149,16 +152,19 @@
         carga={carga}
         parSeleccionado={parSeleccionado}
         onSeleccionar={(id) => (idSeleccionado = id)}
-          onVolver={() => (idSeleccionado = null)}
-          onReintentar={cargar}
-          variables={CATALOGO}
-          variableActiva={variableActiva}
-          variablesCargadas={variablesCargadas}
-          preparacion={preparacion}
-          onCambiarVariable={(id) => void cambiarVariable(id)}
-          capaVisible={capaTendenciaVisible}
-          onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
-        />
+        onVolver={() => (idSeleccionado = null)}
+        onReintentar={cargar}
+        variables={CATALOGO}
+        variableActiva={variableActiva}
+        variablesCargadas={variablesCargadas}
+        preparacion={preparacion}
+        onCambiarVariable={(id) => void cambiarVariable(id)}
+        capaVisible={capaTendenciaVisible}
+        onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
+        anio={anio}
+        anualesDisponibles={anualesDisponibles}
+        escalaMaxima={preparacion?.escalaMaxima ?? 1}
+      />
     </div>
   </aside>
 

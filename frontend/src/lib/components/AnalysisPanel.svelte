@@ -23,6 +23,9 @@
     onCambiarVariable: (id: string) => void
     capaVisible: boolean
     onAlternarCapa: () => void
+    anio: number
+    anualesDisponibles: boolean
+    escalaMaxima: number
   }
 
   let {
@@ -38,6 +41,9 @@
     onCambiarVariable,
     capaVisible,
     onAlternarCapa,
+    anio,
+    anualesDisponibles,
+    escalaMaxima,
   }: Props = $props()
 
   let panelExpandido = $state(false)
@@ -135,7 +141,7 @@
           {capaVisible ? 'Ocultar' : 'Mostrar'}
         </button>
       </div>
-      <Legend />
+       <Legend anio={anio} disponible={anualesDisponibles} escalaMaxima={escalaMaxima} />
       <article class="conjunto" aria-labelledby={`titulo-${datos.variable}`}>
             <div class="conjunto__cabecera">
             <div>

@@ -1,39 +1,64 @@
 <script lang="ts">
-  import TrendMark from './TrendMark.svelte'
+  interface Props {
+    anio: number
+    disponible: boolean
+    escalaMaxima: number
+  }
+
+  let { anio, disponible, escalaMaxima }: Props = $props()
 </script>
 
-<!--
-  Leyenda accesible: cada significado tiene forma + texto, no solo color.
-  Los colores provienen de --trend-up / --trend-down definidas en app.css.
--->
-<div class="leyenda" role="group" aria-label="Leyenda de tendencias">
-  <span class="leyenda__titulo">Leyenda</span>
-  <ul class="leyenda__lista">
-    <li><TrendMark tendencia="alza" significativa conTexto /></li>
-    <li><TrendMark tendencia="bajada" significativa conTexto /></li>
-    <li><TrendMark tendencia="alza" significativa={false} conTexto texto="No significativa" /></li>
-  </ul>
+<div class="leyenda" role="group" aria-label="Escala de cambios anuales">
+  <div class="leyenda__cabeza">
+    <span class="leyenda__titulo">Escala anual</span>
+    {#if disponible}<span class="leyenda__anio">Año {anio}</span>{/if}
+  </div>
+  <div
+    class="leyenda__barra"
+    role="img"
+    aria-label={`Más frío que lo normal a más cálido que lo normal. Escala fija de menos ${escalaMaxima.toFixed(4)} a más ${escalaMaxima.toFixed(4)}.`}
+    title={`Escala fija: ±${escalaMaxima.toFixed(4)}`}
+  ></div>
+  <div class="leyenda__etiquetas">
+    <span>más frío que lo normal</span>
+    <span>más cálido que lo normal</span>
+  </div>
 </div>
 
 <style>
   .leyenda {
-    display: flex;
-    align-items: baseline;
-    gap: 18px;
+    display: grid;
+    gap: 5px;
+    padding: 10px 0 2px;
   }
 
-  .leyenda__titulo {
+  .leyenda__cabeza,
+  .leyenda__etiquetas {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .leyenda__titulo,
+  .leyenda__anio,
+  .leyenda__etiquetas {
     font: 10px var(--mono);
-    letter-spacing: 0.08em;
     color: var(--faint);
   }
 
-  .leyenda__lista {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .leyenda__anio {
+    color: var(--amber);
+  }
+
+  .leyenda__barra {
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3988c2 0%, #d9d4c8 50%, #d99435 100%);
+    box-shadow: inset 0 0 0 1px rgba(243, 247, 252, 0.12);
+  }
+
+  .leyenda__etiquetas {
+    font-size: 9px;
+    line-height: 1.3;
   }
 </style>

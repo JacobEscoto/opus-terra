@@ -4,7 +4,7 @@
     inicio: number
     /** Último año del periodo analizado (viene del contrato). */
     fin: number
-    /** Año activo; enlazado con App. Por ahora solo se muestra. */
+  /** Año activo; enlazado con App y con la capa del globo. */
     anio: number
     /** El JSON de la variable trae valores por año y por celda. */
     disponible: boolean
@@ -15,9 +15,7 @@
   let { inicio, fin, anio = $bindable(), disponible, aviso }: Props = $props()
 </script>
 
-<!-- Control de línea de tiempo: solo filtra la vista si el JSON de la variable
-     trae valores por año y por celda. Hoy ningún JSON los trae, así que el
-     deslizador queda desactivado en lugar de fingir un cambio por año. -->
+<!-- El control solo se activa cuando el JSON trae valores por año y por celda. -->
 <div class="timeline">
   <div class="timeline__cabeza">
     <label class="timeline__etiqueta" for="timeline-anio">Línea de tiempo</label>

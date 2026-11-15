@@ -10,7 +10,7 @@ import type { AnalisisTendencias } from '../types/analysis'
 import { CATALOGO, type VariableCatalogo } from './loadAnalysis'
 
 /** Tope de marcadores que se dibujan en el globo. */
-export const MAXIMO_CELDAS_CAPA = 1000
+export const MAXIMO_CELDAS_CAPA = 2500
 
 /** Celdas que se pasan a la capa, con los conteos que las explican. */
 export interface PreparacionCapa {
@@ -26,6 +26,8 @@ export interface PreparacionCapa {
   limitado: boolean
   /** Aviso del panel cuando la lista se recortó. */
   aviso: string | null
+  /** Máximo absoluto fijo para la escala de todos los años. */
+  escalaMaxima: number
 }
 
 /** Formatea un número con separador de miles. */
@@ -36,9 +38,9 @@ export function formatearNumero(valor: number): string {
 /**
  * Elige las celdas que se dibujan.
  *
- * La capa del globo solo marca pendientes al alza, así que el recorte por
- * `|pendiente|` se aplica sobre ese mismo conjunto: lo que se promete en el
- * panel es exactamente lo que aparece en el globo.
+ * Se incluyen las celdas significativas de ambos signos. El recorte por
+ * `|pendiente|` mantiene acotado el número de puntos sin ocultar una de las
+ * dos direcciones de cambio.
  */
 export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   const significativas = datos.resultados_pixeles.filter((pixel) => pixel.significativa_fdr)
@@ -52,18 +54,28 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
     lon: pixel.lon,
     sen_unidad_por_anio: pixel.sen_unidad_por_anio,
     significativa_fdr: pixel.significativa_fdr,
+    valores_anuales: pixel.valores_anuales,
   }))
   const limitado = significativas.length > MAXIMO_CELDAS_CAPA
+  const valoresAnuales = significativas.flatMap((pixel) => pixel.valores_anuales ?? [])
+  const valoresEscala = valoresAnuales.length
+    ? valoresAnuales
+    : significativas.map((pixel) => pixel.sen_unidad_por_anio)
+  const escalaMaxima = valoresEscala.reduce(
+    (maximo, valor) => (Number.isFinite(valor) ? Math.max(maximo, Math.abs(valor)) : maximo),
+    0,
+  )
   return {
     celdas,
     significativas: significativas.length,
     alAlza: alAlza.length,
     probadas: datos.pixeles_probados,
     limitado,
+    escalaMaxima: escalaMaxima || 1,
     aviso: limitado
-      ? `Se muestran las ${formatearNumero(celdas.length)} celdas con mayor tendencia de ${formatearNumero(
+      ? `Se muestran ${formatearNumero(celdas.length)} de las ${formatearNumero(
           significativas.length,
-        )} totales`
+        )} celdas significativas (ambos signos), priorizadas por magnitud`
       : null,
   }
 }
@@ -87,8 +99,8 @@ export function descripcionCapa(datos: AnalisisTendencias, entrada: VariableCata
 /**
  * Indica si el JSON trae valores por año y por celda.
  *
- * Los JSON actuales solo traen el valor anual inicial y final de cada celda,
- * así que no hay serie anual que pueda alimentar el deslizador.
+ * La serie es opcional porque los productos de precipitación son promedios de
+ * área y no tienen una malla anual por celda.
  */
 export function tieneValoresAnuales(datos: AnalisisTendencias): boolean {
   return datos.resultados_pixeles.some((pixel) => {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { EarthScene, type EarthTelemetry } from '../three/earthScene'
-  import { agregarCapa, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
+import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
 
   interface Props {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
@@ -12,8 +12,11 @@
     horizontalOffset?: number
     /** Keeps the whole globe readable when a data layer is active. */
     dataMode?: boolean
-    celdas?: CeldaTendencia[]
-    capaVisible?: boolean
+  celdas?: CeldaTendencia[]
+  capaVisible?: boolean
+  anio?: number
+  anios?: number[]
+  escalaMaxima?: number
   }
 
   let {
@@ -23,6 +26,9 @@
     dataMode = false,
     celdas = [],
     capaVisible = true,
+    anio = 0,
+    anios = [],
+    escalaMaxima = 1,
   }: Props = $props()
 
   let canvas: HTMLCanvasElement
@@ -36,7 +42,7 @@
       return
     }
     try {
-      agregarCapa(scene.getOverlayRoot(), celdas)
+      agregarCapa(scene.getOverlayRoot(), celdas, anios, escalaMaxima)
     } catch (error: unknown) {
       console.error('[tendenciaLayer] No se pudieron crear los marcadores.', error)
       quitarCapa()
@@ -74,7 +80,15 @@
   $effect(() => {
     sceneRef?.setHorizontalOffset(horizontalOffset)
     sceneRef?.setDataMode(dataMode)
+  })
+
+  $effect(() => {
     actualizarCapa()
+  })
+
+  $effect(() => {
+    const anioActivo = anio
+    if (sceneRef && capaVisible) actualizarColores(anioActivo)
   })
 </script>
 
