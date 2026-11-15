@@ -178,8 +178,10 @@ export class EarthScene {
     this.controls.dampingFactor = 0.06;
     this.controls.enablePan = false;
     this.controls.rotateSpeed = 0.55;
-    this.controls.zoomSpeed = 0.7;
-    this.controls.minDistance = 2.2;
+    // Allow close inspection of small countries while keeping the camera
+    // outside the globe and its atmosphere.
+    this.controls.zoomSpeed = 0.85;
+    this.controls.minDistance = 1.25;
     this.controls.maxDistance = 14;
     this.controls.autoRotate = options.autoRotate ?? !this.reduceMotion;
     this.controls.autoRotateSpeed = 0.35;
