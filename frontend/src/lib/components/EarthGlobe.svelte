@@ -85,7 +85,7 @@
     <div class="boot" role="status" aria-live="polite">
       <div class="boot__rule"><span></span></div>
       <p class="boot__label">
-        {status === 'error' ? 'No se pudieron cargar las texturas del mockup' : 'Cargando texturas del mockup'}
+        {status === 'error' ? 'No se pudieron preparar los datos del planeta' : 'Preparando el planeta…'}
       </p>
     </div>
   {/if}

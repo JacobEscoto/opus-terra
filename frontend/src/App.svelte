@@ -17,6 +17,7 @@
   /** Año mostrado en el panel cuando existan series anuales por celda. */
   let anio = $state<number>(2023)
   let capaTendenciaVisible = $state(true)
+  let mostrarAyuda = $state(false)
 
   /**
    * En escritorio la columna del panel queda a la derecha: un offset negativo
@@ -79,10 +80,15 @@
 </script>
 
 <svelte:head>
-  <title>OpusTerra by Pegaso-X</title>
+  <title>OpusTerra — Mapa de cambios ambientales</title>
   <meta
     name="description"
-    content="OpusTerra by Pegaso-X — un globo terráqueo 3D interactivo."
+    content="Explora tendencias ambientales globales con datos satelitales y modelos climáticos verificables."
+  />
+  <meta property="og:title" content="OpusTerra — Mapa de cambios ambientales" />
+  <meta
+    property="og:description"
+    content="Explora tendencias ambientales globales con datos satelitales y modelos climáticos verificables."
   />
 </svelte:head>
 
@@ -98,7 +104,28 @@
 <div class="interface">
   <header class="masthead">
     <span>OpusTerra by Pegaso-X</span>
+    <p class="welcome">Explora cómo cambian la temperatura, la lluvia y la vegetación del planeta.</p>
+    <button
+      class="about-button"
+      type="button"
+      aria-expanded={mostrarAyuda}
+      aria-controls="about-panel"
+      onclick={() => (mostrarAyuda = !mostrarAyuda)}
+    >¿Cómo leer este mapa?</button>
   </header>
+
+  {#if mostrarAyuda}
+    <dialog id="about-panel" class="about-panel" aria-labelledby="about-title" open>
+      <h2 id="about-title">Un mapa para mirar cambios</h2>
+      <p>
+        OpusTerra reúne observaciones satelitales y modelos climáticos para ayudarte a explorar
+        dónde cambian la temperatura, la lluvia y la vegetación.
+      </p>
+      <p>
+        Elige una variable, gira el planeta y abre un contraste para leer la señal y su contexto.
+      </p>
+    </dialog>
+  {/if}
 
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
@@ -134,6 +161,11 @@
         />
     </div>
   </aside>
+
+  <footer class="credits">
+    <p>Fuentes: NASA MERRA-2, MODIS, GPM, NOAA/KNMI.</p>
+    <p>Información ambiental; no es un diagnóstico de salud.</p>
+  </footer>
 </div>
 
 <style>
@@ -145,12 +177,23 @@
     grid-template-rows: auto 1fr;
     grid-template-areas:
       'masthead masthead'
-      'stage    rail';
+      'stage    rail'
+      'credits  credits';
     column-gap: 48px;
   }
 
   .masthead {
     grid-area: masthead;
+    justify-content: space-between;
+    pointer-events: auto;
+  }
+
+  .welcome {
+    max-width: 48ch;
+    margin: 0 auto 0 32px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
   }
 
   .stage {
@@ -168,6 +211,18 @@
     min-width: 0;
   }
 
+  .credits {
+    grid-area: credits;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hairline);
+    color: var(--faint);
+    font: 9px/1.5 var(--mono);
+    pointer-events: auto;
+  }
+
   .rail-slot,
   .timeline-slot {
     pointer-events: auto;
@@ -177,10 +232,12 @@
   @media (max-width: 899px) {
     .interface {
       grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(180px, 1fr) auto auto;
       grid-template-areas:
         'masthead'
-        'stage';
+        'stage'
+        'rail'
+        'credits';
       column-gap: 0;
     }
 
@@ -190,20 +247,29 @@
     }
 
     .rail {
-      position: fixed;
-      right: max(17px, env(safe-area-inset-right));
-      bottom: 0;
-      left: max(17px, env(safe-area-inset-left));
+      position: relative;
       z-index: 2;
-      pointer-events: none;
+      width: 100%;
     }
 
     .rail-slot {
       pointer-events: auto;
     }
+
+    .credits {
+      position: relative;
+      z-index: 3;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 4px;
+    }
   }
 
   @media (max-width: 650px) {
+    .welcome {
+      display: none;
+    }
+
     .stage {
       padding-top: 15px;
     }
