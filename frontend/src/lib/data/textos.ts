@@ -125,7 +125,6 @@ export const ACERCA = {
     texto: "Licencia MIT",
     url: "https://github.com/JacobEscoto/opus-terra/blob/main/LICENSE",
   },
-  aviso: "Información ambiental; no es un diagnóstico de salud.",
   integrantes: [
     "Dana Ruiz",
     "Rose Hernández",

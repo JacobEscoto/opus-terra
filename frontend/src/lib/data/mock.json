@@ -4,7 +4,6 @@
   "nombre_variable": "Clorofila-a superficial",
   "unidad": "mg/m³",
   "periodo": { "inicio": 2003, "fin": 2023 },
-  "contexto_oms": "Información ambiental; no es un diagnóstico de salud.",
   "pares": [
     {
       "id": "benguela-guinea",

@@ -6,15 +6,14 @@
 
 <article class="page">
   <div class="page__top"><button type="button" onclick={onCerrar}>{NAVEGACION.volver}</button></div>
-  <header><p class="page__kicker">{APP.marca}</p><h1>{ACERCA.titulo}</h1>{#each ACERCA.parrafos as parrafo}<p class="intro">{parrafo}</p>{/each}<p class="intro">{ACERCA.aviso}</p></header>
+  <header><p class="page__kicker">{APP.marca}</p><h1>{ACERCA.titulo}</h1>{#each ACERCA.parrafos as parrafo}<p class="intro">{parrafo}</p>{/each}</header>
   <section><h2>{ACERCA.fuentesTitulo}</h2><div><ul>{#each ACERCA.fuentes as fuente}<li><a href={fuente.url} target="_blank" rel="noreferrer">{fuente.texto}</a></li>{/each}</ul><p class="oni"><a href={ACERCA.fuenteOni.url} target="_blank" rel="noreferrer">{ACERCA.fuenteOni.texto}</a></p></div></section>
   <section><h2>{ACERCA.integrantesTitulo}</h2><ul class="integrantes">{#each ACERCA.integrantes as integrante}<li>{integrante}</li>{/each}</ul></section>
   <p class="license"><a href={ACERCA.licencia.url} target="_blank" rel="noreferrer">{ACERCA.licencia.texto}</a></p>
 </article>
 
 <style>
-  .page { position: relative; isolation: isolate; min-height: 100vh; width: min(820px, 100%); margin: 0 auto; padding: 28px 42px 64px; }
-  .page::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(circle at 85% 12%, rgba(217, 148, 53, .16), transparent 30%), radial-gradient(circle at 10% 70%, rgba(57, 136, 194, .13), transparent 34%), linear-gradient(145deg, rgba(16, 27, 44, .98), rgba(8, 14, 27, .98)); }
+  .page { min-height: 100vh; width: min(820px, 100%); margin: 0 auto; padding: 28px 42px 64px; }
   .page__top { display: flex; justify-content: flex-end; margin-bottom: clamp(60px, 12vh, 130px); }
   .page__top button { border: 0; border-bottom: 1px solid var(--amber); padding: 0 0 5px; background: transparent; font: 10px var(--mono); color: var(--ink); }
   header { max-width: 680px; padding-bottom: 45px; border-bottom: 1px solid var(--hairline); }
