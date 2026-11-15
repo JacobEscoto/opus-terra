@@ -31,7 +31,14 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; background: var(--bg); }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 72% 38%, rgba(35, 91, 150, .2), transparent 34rem),
+    radial-gradient(circle at 12% 84%, rgba(19, 57, 91, .2), transparent 28rem),
+    var(--bg);
+}
 body { overflow-x: hidden; }
 #app { min-height: 100svh; }
 h1, h2, h3, p, dl, dd, dt { margin: 0; }
@@ -72,7 +79,7 @@ h1 em { color: var(--blue); font-style: normal; }
 .readout__line { height: 1px; background: var(--hairline); }
 .facts { display: grid; gap: 11px; padding-top: 17px; }.facts div { display: flex; justify-content: space-between; gap: 15px; font: 10px var(--mono); }.facts dt { color: var(--faint); }.facts dd { color: var(--muted); text-align: right; }
 
-.about-panel { position: absolute; top: 88px; right: 42px; z-index: 3; width: min(320px, calc(100vw - 48px)); padding: 20px; border: 1px solid var(--hairline); background: #101b2c; box-shadow: 0 18px 40px rgba(0,0,0,.25); }.about-panel p:last-child { margin-top: 15px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.about-panel { position: absolute; top: 76px; right: 42px; z-index: 3; width: min(320px, calc(100vw - 48px)); margin: 0; padding: 20px; border: 1px solid var(--hairline); background: rgba(16, 27, 44, .96); box-shadow: 0 18px 40px rgba(0,0,0,.3); pointer-events: auto; }.about-panel p:last-child { margin-top: 15px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .instrument-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end; gap: 20px; padding-top: 17px; border-top: 1px solid var(--hairline); }
 .instrument-bar__item { display: flex; flex-direction: column; gap: 8px; }.instrument-bar__item--mark { align-items: flex-end; }.instrument-value { font: 10px var(--mono); color: var(--muted); }.instrument-value b { color: var(--ink); font-weight: 500; }.slash { margin: 0 7px; color: var(--faint); }.layer-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--blue); vertical-align: 1px; }
 
@@ -84,7 +91,7 @@ h1 em { color: var(--blue); font-style: normal; }
   .masthead { padding-bottom: 14px; }.masthead__right { gap: 13px; }.status { display: none; }
   .layout { display: flex; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 18px; }.intro { padding: 3vh 0 0; }.intro__body { margin-top: 20px; font-size: 13px; max-width: 31ch; }.intro__rule, .intro__note { display: none; } h1 { margin-top: 17px; font-size: clamp(2.8rem, 13vw, 4.2rem); }
   .readout { align-self: flex-end; width: min(100%, 295px); margin: auto 0 0; padding: 13px 15px 15px; }.coordinates { padding: 15px 0 14px; }.facts { padding-top: 13px; gap: 8px; }
-  .instrument-bar { grid-template-columns: 1fr 1fr; gap: 13px; padding-top: 13px; }.instrument-bar__item--mark { display: none; }.instrument-value { font-size: 9px; }.about-panel { top: 72px; right: 17px; }
+   .instrument-bar { grid-template-columns: 1fr 1fr; gap: 13px; padding-top: 13px; }.instrument-bar__item--mark { display: none; }.instrument-value { font-size: 9px; }.about-panel { top: 64px; right: 0; width: min(320px, 100%); }
 }
 /* Insignia compartida para señales sin significancia estadística: borde
    punteado + patrón rayado, para que sea visible sin depender del color. */
