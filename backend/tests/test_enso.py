@@ -7,7 +7,11 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from opusterra.enso import alinear_mensual, cargar_oni, remover_enso
+from opusterra.enso import RUTA_ONI_POR_DEFECTO, alinear_mensual, cargar_oni, remover_enso
+
+
+RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]
+RUTA_ONI_REAL = RAIZ_REPOSITORIO / RUTA_ONI_POR_DEFECTO
 
 
 def _oni_sintetico(fechas: pd.DatetimeIndex) -> pd.Series:
@@ -16,11 +20,14 @@ def _oni_sintetico(fechas: pd.DatetimeIndex) -> pd.Series:
     return pd.Series(np.linspace(-1.5, 1.5, len(fechas)), index=fechas, name="ONI")
 
 
+@pytest.mark.skipif(
+    not RUTA_ONI_REAL.is_file(),
+    reason=f"Falta el NetCDF ONI descargado en {RUTA_ONI_REAL}",
+)
 def test_cargar_oni_lee_el_archivo_real_y_reporta_metadatos() -> None:
     """El archivo entregado tiene variable, dimensiones y cobertura esperadas."""
 
-    ruta = Path("/home/djacoz/projects/trend-detective/data/external/nino-3.4/iersst_nino3.4a_1996_2026.nc")
-    oni = cargar_oni(ruta)
+    oni = cargar_oni(RUTA_ONI_REAL)
 
     assert oni.name == "Nino3.4"
     assert len(oni) == 372
