@@ -298,10 +298,6 @@
     </div>
   </aside>
 
-  <footer class="credits">
-    <p><a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{APP.fuentesPie}</a></p>
-    <p><a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{APP.aclaracion}</a></p>
-  </footer>
 </main>
 
 {#if pagina}
@@ -319,8 +315,7 @@
     grid-template-rows: auto 1fr;
     grid-template-areas:
       'masthead masthead'
-      'stage    rail'
-      'credits  credits';
+      'stage    rail';
     column-gap: 48px;
   }
 
@@ -355,18 +350,6 @@
     min-width: 0;
   }
 
-  .credits {
-    grid-area: credits;
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--hairline);
-    color: var(--faint);
-    font: 9px/1.5 var(--mono);
-    pointer-events: auto;
-  }
-
   .rail-slot,
   .timeline-slot {
     pointer-events: auto;
@@ -379,12 +362,11 @@
   @media (max-width: 899px) {
     .interface {
       grid-template-columns: 1fr;
-      grid-template-rows: auto minmax(260px, 1fr) auto auto;
+      grid-template-rows: auto minmax(260px, 1fr) auto;
       grid-template-areas:
         'masthead'
         'stage'
-        'rail'
-        'credits';
+        'rail';
       column-gap: 0;
     }
 
@@ -404,13 +386,6 @@
       pointer-events: auto;
     }
 
-    .credits {
-      position: relative;
-      z-index: 3;
-      flex-direction: column;
-      gap: 4px;
-      padding-bottom: 4px;
-    }
     .site-menu { right: 24px; }
   }
 
@@ -427,7 +402,7 @@
     .timeline-slot {
       position: absolute;
       right: 0;
-      bottom: 8px;
+      bottom: 2px;
       left: 0;
       width: min(100%, 360px);
       margin: 0 auto;

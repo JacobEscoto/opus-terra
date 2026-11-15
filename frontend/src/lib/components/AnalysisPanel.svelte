@@ -630,6 +630,10 @@
       display: none;
     }
 
+    .panel:not(.panel--expandido) .panel__detalles {
+      display: none;
+    }
+
     .panel--expandido .panel__contenido {
       overflow-y: auto;
       overscroll-behavior: contain;

@@ -15,9 +15,7 @@ export const APP = {
   ayudaTitulo: "Un mapa para mirar cambios",
   ayudaTexto:
     "OpusTerra reúne observaciones satelitales y modelos climáticos para ayudarte a explorar dónde cambian la temperatura, la lluvia y la vegetación.",
-  fuentesPie: "Fuentes: NASA MERRA-2, MODIS, GPM, NOAA/KNMI.",
   avisoSinSerie: "Esta variable no incluye una serie anual por celda.",
-  aclaracion: "Información ambiental; no es un diagnóstico de salud.",
 } as const;
 
 export const LEYENDA = {
