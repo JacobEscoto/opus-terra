@@ -36,6 +36,51 @@ export function formatearNumero(valor: number): string {
 }
 
 /**
+ * Traduce el código de unidad del JSON a una forma que se lee sin conocerlo.
+ *
+ * El contrato conserva los códigos (`degC`, `mm/hr`); el panel muestra su
+ * equivalente legible.
+ */
+export function unidadLegible(unidad: string): string {
+  const equivalencias: Record<string, string> = {
+    degC: '°C',
+    'mm/hr': 'mm/h',
+    'kg m-2 s-1': 'kg/m²/s',
+    'NDVI (adimensional)': 'NDVI',
+  }
+  return equivalencias[unidad] ?? unidad
+}
+
+/**
+ * Años que cubre el periodo analizado, contando el año inicial y el final
+ * (MERRA-2: 2001–2024 son 24 años, los mismos que declara `anios_completos`).
+ */
+export function aniosDelPeriodo(datos: AnalisisTendencias): number {
+  return datos.periodo.fin - datos.periodo.inicio + 1
+}
+
+/**
+ * Frase resumen del panel, armada solo con los campos del JSON.
+ *
+ * Ejemplo (MERRA-2 T2M): «En 24 años, 45 de 110 zonas de Honduras se
+ * calentaron de forma clara.» Los productos de promedio de área no tienen
+ * celdas que analizar, así que la frase lo dice sin cifras inventadas.
+ */
+export function fraseResumen(datos: AnalisisTendencias): string {
+  const anios = aniosDelPeriodo(datos)
+  if (datos.pixeles_probados === 0) {
+    return 'No hay zonas analizadas: este producto es un promedio de área.'
+  }
+  const cambio =
+    datos.variable === 'merra2_t2m'
+      ? 'se calentaron de forma clara'
+      : 'mostraron un cambio claro'
+  return `En ${anios} años, ${formatearNumero(datos.pixeles_significativos_fdr)} de ${formatearNumero(
+    datos.pixeles_probados,
+  )} zonas de Honduras ${cambio}.`
+}
+
+/**
  * Elige las celdas que se dibujan.
  *
  * Se incluyen las celdas significativas de ambos signos. El recorte por
@@ -93,7 +138,7 @@ export function descripcionCapa(datos: AnalisisTendencias, entrada: VariableCata
   }
   return `Tendencia de ${entrada.tema} ${periodo}, ${entrada.producto}, ajustada por ENSO. ${formatearNumero(
     datos.pixeles_significativos_fdr,
-  )} celdas significativas tras corrección FDR. Sin pares de contraste.`
+  )} zonas donde el cambio es claro y no parece casualidad. No encontramos zonas con cambios opuestos.`
 }
 
 /**
