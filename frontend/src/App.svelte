@@ -10,7 +10,11 @@
     type EstadoCarga,
     type RegionDisponible,
   } from "./lib/data/loadAnalysis";
-  import { prepararCapa, tieneValoresAnuales } from "./lib/data/capa";
+  import {
+    prepararCapa,
+    tieneValoresAnuales,
+    nombreCorto,
+  } from "./lib/data/capa";
   import type { ParRegiones } from "./lib/types/analysis";
   import GlobeLegend from "./lib/components/GlobeLegend.svelte";
   import Glosario from "./lib/components/paginas/Glosario.svelte";
@@ -79,6 +83,16 @@
     datos
       ? (datos.pares.find((par) => par.id === idSeleccionado) ?? null)
       : null,
+  );
+
+  const etiquetasGlobo = $derived(
+    parSeleccionado
+      ? [parSeleccionado.region_a, parSeleccionado.region_b].map((region) => ({
+          texto: nombreCorto(region),
+          lat: region.lat,
+          lon: region.lon,
+        }))
+      : [],
   );
 
   function centroDe(id: string): { lat: number; lon: number } {
@@ -289,6 +303,7 @@
   escalaMaxima={preparacion?.escalaMaxima}
   onReady={onGlobeReady}
   onInteraction={detenerRecorrido}
+  etiquetas={etiquetasGlobo}
 />
 
 <main class="interface">

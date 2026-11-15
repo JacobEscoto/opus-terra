@@ -6,83 +6,85 @@
  */
 
 /** Dirección del cambio detectado en la serie de una región. */
-export type Tendencia = 'alza' | 'bajada'
+export type Tendencia = "alza" | "bajada";
 
 /** Una región analizada, con su tendencia, significancia y explicación. */
 export interface RegionAnalizada {
   /** Nombre legible de la región. */
-  nombre: string
+  nombre: string;
   /** Centro aproximado de la región, en grados decimales. */
-  lat: number
-  lon: number
+  lat: number;
+  lon: number;
   /** Dirección del cambio detectado. */
-  tendencia: Tendencia
+  tendencia: Tendencia;
   /** Cambio relativo acumulado en el periodo, en porcentaje. */
-  cambio_porcentual: number
+  cambio_porcentual: number;
   /** ¿El cambio es claro según la comprobación estadística? */
-  significativa: boolean
+  significativa: boolean;
   /** Explicación disponible en el contrato; la interfaz usa su propio texto. */
-  explicacion: string
+  explicacion: string;
+  pais?: string;
+  ciudad?: string;
 }
 
 /** Par de regiones con cambios comparables u opuestos. */
 export interface ParRegiones {
   /** Identificador estable del par (p. ej. "benguela-guinea"). */
-  id: string
-  region_a: RegionAnalizada
-  region_b: RegionAnalizada
+  id: string;
+  region_a: RegionAnalizada;
+  region_b: RegionAnalizada;
 }
 
 /** Periodo temporal cubierto por el análisis, en años. */
 export interface PeriodoAnalisis {
-  inicio: number
-  fin: number
-  mes_inicio?: string
-  mes_fin?: string
-  meses?: number
-  anios_completos?: number[]
+  inicio: number;
+  fin: number;
+  mes_inicio?: string;
+  mes_fin?: string;
+  meses?: number;
+  anios_completos?: number[];
 }
 
 /** Resultado estadístico de una celda de la malla. */
 export interface ResultadoPixel {
-  lat: number
-  lon: number
-  mann_kendall_z: number
-  p_valor: number
-  direccion: string
-  sen_unidad_por_anio: number
-  significativa_fdr: boolean
-  valores_anuales?: number[]
+  lat: number;
+  lon: number;
+  mann_kendall_z: number;
+  p_valor: number;
+  direccion: string;
+  sen_unidad_por_anio: number;
+  significativa_fdr: boolean;
+  valores_anuales?: number[];
 }
 
 /** Respuesta completa del análisis de tendencias. */
 export interface AnalisisTendencias {
   /** Origen del producto de datos. */
-  fuente: string
+  fuente: string;
   /** Identificador de la variable analizada (p. ej. "clorofila_a"). */
-  variable: string
+  variable: string;
   /** Identificador estable de la región analizada. */
-  region: string
+  region: string;
   /** Nombre visible de la región analizada. */
-  region_nombre: string
+  region_nombre: string;
   /** Nombre legible de la variable. */
-  nombre_variable: string
+  nombre_variable: string;
   /** Unidad de medida de la variable. */
-  unidad: string
+  unidad: string;
   /** Años cubiertos por el análisis. */
-  periodo: PeriodoAnalisis
+  periodo: PeriodoAnalisis;
   /** Contexto heredado del contrato; no se muestra en la interfaz. */
-  contexto_oms?: string
+  contexto_oms?: string;
   /** Pares de regiones propuestos por el análisis. */
-  pares: ParRegiones[]
+  pares: ParRegiones[];
   /** Número de celdas evaluadas estadísticamente. */
-  pixeles_probados: number
+  pixeles_probados: number;
   /** Número de celdas significativas después de FDR. */
-  pixeles_significativos_fdr: number
+  pixeles_significativos_fdr: number;
   /** Resultados individuales de las celdas. */
-  resultados_pixeles: ResultadoPixel[]
+  resultados_pixeles: ResultadoPixel[];
   /** Conjuntos cargados en la misma respuesta. */
-  analisis?: AnalisisTendencias[]
+  analisis?: AnalisisTendencias[];
   /** Texto disponible para productos sin malla espacial. */
-  limitacion?: string
+  limitacion?: string;
 }
