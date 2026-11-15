@@ -116,6 +116,14 @@ export const ACERCA = {
       texto: "NASA MODIS · MOD13C2 · versión 061",
       url: "https://cmr.earthdata.nasa.gov/search/granules?short_name=MOD13C2",
     },
+    {
+      texto: "GeoNames (CC by 4.0). Nombres de ciudades y departamentos",
+      url: "https://www.geonames.org",
+    },
+    {
+      texto: "Natural Earth (dominio público). Fronteras de países",
+      url: "https://www.naturalearthdata.com/",
+    },
   ],
   fuenteOni: {
     texto: "NOAA/KNMI · índice ONI",
