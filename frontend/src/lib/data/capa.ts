@@ -51,6 +51,13 @@ export function unidadLegible(unidad: string): string {
   return equivalencias[unidad] ?? unidad
 }
 
+/** Escala aproximada de una celda, expresada en unidades que entiende el usuario. */
+export function escalaCelda(fuente: string): string {
+  if (fuente.includes('MERRA-2')) return 'unos 55 × 70 km'
+  if (fuente.includes('MODIS')) return 'unos 5 × 5 km'
+  return ''
+}
+
 /**
  * Años que cubre el periodo analizado, contando el año inicial y el final
  * (MERRA-2: 2001–2024 son 24 años, los mismos que declara `anios_completos`).
@@ -134,7 +141,7 @@ export function entradaDe(datos: AnalisisTendencias): VariableCatalogo | undefin
 export function descripcionCapa(datos: AnalisisTendencias, entrada: VariableCatalogo): string {
   const periodo = `${datos.periodo.inicio}–${datos.periodo.fin}`
   if (datos.pixeles_probados === 0) {
-    return `${entrada.tema} ${periodo} (${entrada.producto}): promedio de área, sin malla de píxeles que dibujar.`
+    return `${entrada.tema} ${periodo} (${entrada.producto}): promedio de área, sin malla de celdas que dibujar.`
   }
   return `Tendencia de ${entrada.tema} ${periodo}, ${entrada.producto}, ajustada por ENSO. ${formatearNumero(
     datos.pixeles_significativos_fdr,

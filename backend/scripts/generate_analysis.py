@@ -17,12 +17,14 @@ import xarray as xr
 from opusterra import mod13c2
 from opusterra.config import PERIODO_COMUN
 from opusterra.enso import cargar_oni, remover_enso
+from opusterra.lugares import cargar_lugares, nombrar_punto
 from opusterra.tendencia import fdr_benjamini_hochberg, mann_kendall, pendiente_sen
 
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "frontend" / "public" / "data"
 DATASETS = ROOT / "backend" / "config" / "datasets.toml"
+LUGARES = ROOT / "backend" / "config" / "lugares_honduras.csv"
 INICIO = pd.Period(PERIODO_COMUN[0], freq="M")
 FIN = pd.Period(PERIODO_COMUN[1], freq="M")
 ALFA = 0.05
@@ -96,14 +98,16 @@ def _base(
     return resultado
 
 
-def _crear_pares(registros: list[dict]) -> list[dict]:
+def _crear_pares(registros: list[dict], lugares: list[dict] | None = None) -> list[dict]:
+    if lugares is None:
+        lugares = cargar_lugares(LUGARES, bbox=(-89.4, 12.9, -83.1, 16.6))
     crecientes = [r for r in registros if r["significativa_fdr"] and r["direccion"] == "creciente"]
     decrecientes = [r for r in registros if r["significativa_fdr"] and r["direccion"] == "decreciente"]
     pares = []
     for indice, (creciente, decreciente) in enumerate(zip(crecientes, decrecientes, strict=False), 1):
         def region(registro: dict, tendencia: str) -> dict:
             return {
-                "nombre": f"Píxel {registro['lat']:.2f}, {registro['lon']:.2f}",
+                "nombre": nombrar_punto(registro["lat"], registro["lon"], lugares),
                 "lat": registro["lat"],
                 "lon": registro["lon"],
                 "tendencia": tendencia,

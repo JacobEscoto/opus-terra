@@ -1,19 +1,21 @@
 <script lang="ts">
   import type { RegionAnalizada } from '../types/analysis'
-  import { unidadLegible } from '../data/capa'
+  import { escalaCelda, unidadLegible } from '../data/capa'
   import TrendMark from './TrendMark.svelte'
 
   interface Props {
     region: RegionAnalizada
-    /** Etiqueta del lado dentro del par ("Región A" / "Región B"). */
+    /** Etiqueta del lado dentro del par ("Zona A" / "Zona B"). */
     etiqueta: string
     /** Unidad de la variable, viene del contrato. */
     unidad: string
     /** Contexto de la OMS, viene del contrato (sin diagnósticos). */
     contextoOms: string
+    /** Fuente del producto, para mostrar su escala espacial cuando se conoce. */
+    fuente: string
   }
 
-  let { region, etiqueta, unidad, contextoOms }: Props = $props()
+  let { region, etiqueta, unidad, contextoOms, fuente }: Props = $props()
 
   function cambioFormateado(valor: number): string {
     return `${valor > 0 ? '+' : ''}${valor.toFixed(1)} %`
@@ -25,6 +27,8 @@
     const lon = `${Math.abs(valor.lon).toFixed(1)}° ${valor.lon < 0 ? 'O' : 'E'}`
     return `${lat} / ${lon}`
   }
+
+  const escala = $derived(escalaCelda(fuente))
 </script>
 
 <!-- Tarjeta de una región: tendencia + significancia + lectura numérica +
@@ -36,7 +40,14 @@
   </header>
 
   <h3 class="region__nombre">{region.nombre}</h3>
-  <p class="region__coords">{coordenadas(region)}</p>
+  <details class="region__detalles">
+    <summary>Ver detalles técnicos</summary>
+    <p class="region__coords">{coordenadas(region)}</p>
+  </details>
+
+  {#if escala}
+    <p class="region__escala">Cada zona representa {escala}</p>
+  {/if}
 
   <p class="region__cambio">
     <strong>{cambioFormateado(region.cambio_porcentual)}</strong>
@@ -46,7 +57,7 @@
   {#if region.significativa}
     <span class="region__insignia region__insignia--ok">Cambio significativo</span>
   {:else}
-    <span class="insignia-neutra">Cambio no significativo</span>
+    <span class="insignia-neutra">Cambio poco claro</span>
   {/if}
 
   <p class="region__explicacion">{region.explicacion}</p>
@@ -97,7 +108,24 @@
   }
 
   .region__coords {
+    margin-top: 7px;
     font: 10px var(--mono);
+    color: var(--faint);
+  }
+
+  .region__detalles summary {
+    cursor: pointer;
+    font: 10px var(--mono);
+    color: var(--muted);
+  }
+
+  .region__detalles summary:hover,
+  .region__detalles summary:focus-visible {
+    color: var(--amber);
+  }
+
+  .region__escala {
+    font: 10px/1.5 var(--mono);
     color: var(--faint);
   }
 

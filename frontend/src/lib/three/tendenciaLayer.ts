@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { ResultadoPixel } from '../types/analysis'
 
-/** Píxeles de la malla que pueden representarse como marcadores. */
+/** Celdas de la malla que pueden representarse como marcadores. */
 export type CeldaTendencia = Pick<
   ResultadoPixel,
   'lat' | 'lon' | 'sen_unidad_por_anio' | 'significativa_fdr' | 'valores_anuales'

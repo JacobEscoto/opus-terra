@@ -132,15 +132,17 @@
       <div class="detalle__regiones">
         <RegionCard
           region={parSeleccionado.region_a}
-          etiqueta="Región A"
-          unidad={datos.unidad}
-          contextoOms={datos.contexto_oms}
+           etiqueta="Zona A"
+           unidad={datos.unidad}
+           contextoOms={datos.contexto_oms}
+           fuente={datos.fuente}
         />
         <RegionCard
           region={parSeleccionado.region_b}
-          etiqueta="Región B"
-          unidad={datos.unidad}
-          contextoOms={datos.contexto_oms}
+           etiqueta="Zona B"
+           unidad={datos.unidad}
+           contextoOms={datos.contexto_oms}
+           fuente={datos.fuente}
         />
       </div>
     </div>
@@ -181,7 +183,7 @@
 
             {#if esPromedioDeArea(datos)}
             <div class="estado-datos estado-datos--area">
-              <strong>Promedio de área: no hay análisis por píxel</strong>
+               <strong>Promedio de área: no hay análisis por celdas</strong>
               <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas</p>
             </div>
             {:else if datos.pixeles_significativos_fdr === 0}
@@ -211,10 +213,6 @@
             />
           {/if}
 
-          {#if datos.fuente.includes('MERRA-2')}
-            <p class="resolucion">Resolución MERRA-2: cada celda representa aproximadamente 0.5° × 0.625°.</p>
-          {/if}
-
           {#if preparacion?.limitado}
             <div class="estado-datos">
               <strong>{preparacion.aviso}</strong>
@@ -225,10 +223,13 @@
           {#if datos.variable === 'merra2_t2m' || datos.variable === 'mod13c2_ndvi'}
             <div class="celdas" aria-label="Celdas T2M significativas">
               <h4>Celdas significativas</h4>
-               {#each (preparacion?.celdas ?? celdasSignificativas(datos)) as pixel}
-                <div class="celda">
-                  <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
-                  <span class="celda__valores">
+                {#each (preparacion?.celdas ?? celdasSignificativas(datos)) as pixel}
+                 <div class="celda">
+                   <details class="celda__detalles">
+                     <summary>Ver coordenadas</summary>
+                     <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
+                   </details>
+                   <span class="celda__valores">
                     <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
                       {cambioPorAnio(pixel.sen_unidad_por_anio)}
                     </span>
@@ -453,7 +454,6 @@
   }
 
   .conjunto__fuente,
-  .resolucion,
   .celda,
   .estado-datos p {
     font: 10px/1.5 var(--mono);
@@ -487,10 +487,6 @@
     border-left-color: var(--muted);
   }
 
-  .resolucion {
-    margin: 0;
-  }
-
   .celdas {
     display: grid;
     gap: 5px;
@@ -508,6 +504,22 @@
     gap: 12px;
     padding: 5px 0;
     border-bottom: 1px solid rgb(255 255 255 / 8%);
+  }
+
+  .celda__detalles {
+    min-width: 0;
+  }
+
+  .celda__detalles summary {
+    cursor: pointer;
+    color: var(--ink);
+  }
+
+  .celda__detalles span {
+    display: block;
+    margin-top: 3px;
+    font-size: 9px;
+    color: var(--faint);
   }
 
   /* Cada zona: la pendiente y, debajo, el acumulado del periodo. */

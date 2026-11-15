@@ -115,13 +115,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     min-width: 0;
   }
 
   .par__nombre {
+    min-width: 0;
+    overflow: hidden;
     font-size: 13px;
     color: var(--ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
   }
 
   /* Lecturas alineadas a la derecha, como en un panel de instrumento: una

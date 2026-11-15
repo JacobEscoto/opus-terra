@@ -128,22 +128,22 @@ function validarPar(valor: unknown, indice: number): ParRegiones {
 /** Valida el resultado estadístico de una celda antes de mostrarlo. */
 function validarPixel(valor: unknown, indice: number): ResultadoPixel {
   if (typeof valor !== 'object' || valor === null) {
-    fallar(`El resultado de píxel ${indice + 1} no es un objeto válido.`)
+    fallar(`El resultado de celda ${indice + 1} no es un objeto válido.`)
   }
   const pixel = valor as Record<string, unknown>
   const numericos = ['lat', 'lon', 'mann_kendall_z', 'p_valor', 'sen_unidad_por_anio']
   if (numericos.some((campo) => typeof pixel[campo] !== 'number' || !Number.isFinite(pixel[campo]))) {
-    fallar(`El resultado de píxel ${indice + 1} tiene valores numéricos inválidos.`)
+    fallar(`El resultado de celda ${indice + 1} tiene valores numéricos inválidos.`)
   }
   if (
     pixel.valores_anuales !== undefined &&
     (!Array.isArray(pixel.valores_anuales) ||
       pixel.valores_anuales.some((valor) => typeof valor !== 'number' || !Number.isFinite(valor)))
   ) {
-    fallar(`El resultado de píxel ${indice + 1} tiene valores anuales inválidos.`)
+    fallar(`El resultado de celda ${indice + 1} tiene valores anuales inválidos.`)
   }
   if (typeof pixel.direccion !== 'string' || typeof pixel.significativa_fdr !== 'boolean') {
-    fallar(`El resultado de píxel ${indice + 1} está incompleto.`)
+    fallar(`El resultado de celda ${indice + 1} está incompleto.`)
   }
   return pixel as unknown as ResultadoPixel
 }
@@ -175,20 +175,20 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
     fallar('El JSON de análisis no incluye el contexto de la OMS.')
   }
   if (!Number.isInteger(d.pixeles_probados) || (d.pixeles_probados as number) < 0) {
-    fallar('El JSON de análisis no declara un número válido de píxeles probados.')
+    fallar('El JSON de análisis no declara un número válido de celdas probadas.')
   }
   if (
     !Number.isInteger(d.pixeles_significativos_fdr) ||
     (d.pixeles_significativos_fdr as number) < 0 ||
     (d.pixeles_significativos_fdr as number) > (d.pixeles_probados as number)
   ) {
-    fallar('El JSON de análisis no declara un número válido de píxeles significativos.')
+    fallar('El JSON de análisis no declara un número válido de celdas significativas.')
   }
   if (!Array.isArray(d.pares)) {
     fallar('El JSON de análisis no declara una lista de pares válida.')
   }
   if (!Array.isArray(d.resultados_pixeles)) {
-    fallar('El JSON de análisis no declara una lista de resultados por píxel válida.')
+    fallar('El JSON de análisis no declara una lista de resultados por celda válida.')
   }
   return {
     fuente: d.fuente as string,

@@ -22,7 +22,7 @@
   const descripcion = $derived(
     significativa
       ? `Tendencia al ${tendencia === 'alza' ? 'alza' : 'baja'}, cambio significativo`
-      : 'Cambio no significativo'
+       : 'Cambio poco claro'
   )
 </script>
 
