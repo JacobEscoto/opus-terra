@@ -125,10 +125,11 @@ temperatura ni en PM2.5.
 ## Resultados por celda
 
 Cada elemento de `resultados_pixeles` es una celda de la malla con su serie
-anual y su prueba de tendencia. Cuando el archivo supera los 3 MB, esta lista
-trae solo las celdas significativas para no pesar de más; `pixeles_probados` y
-`pixeles_significativos_fdr` siguen contando el análisis completo. Así ocurre con
-la vegetación de Honduras: 5538 celdas probadas y 2747 elementos en la lista.
+anual y su prueba de tendencia. Cuando el contenido sin recortar supera los
+3 MB, esta lista trae solo las celdas significativas para no pesar de más;
+`pixeles_probados` y `pixeles_significativos_fdr` siguen contando el análisis
+completo. Así ocurre con la vegetación de Honduras: 5538 celdas probadas y 2747
+elementos en la lista.
 
 ```json
 {
@@ -178,9 +179,10 @@ la vegetación de Honduras: 5538 celdas probadas y 2747 elementos en la lista.
 - `valor_anual_inicial` y `valor_anual_final`: esos mismos extremos, con todos
   sus decimales.
 - `cambio_porcentual`: diferencia entre el último y el primer valor anual,
-  expresada como porcentaje del primero. En las series de residuos, que rondan
-  cero, un valor inicial diminuto produce porcentajes enormes o de signo contrario
-  al de la tendencia; no debe leerse como cambio de cobertura o de magnitud.
+  expresada como porcentaje del valor absoluto del primero. En las series de
+  residuos, que rondan cero, un valor inicial diminuto produce porcentajes enormes
+  o de signo contrario al de la tendencia; no debe leerse como cambio de cobertura
+  o de magnitud.
 - `significativa_fdr`: `true` si la celda superó la corrección por comparaciones
   múltiples; es decir, si su cambio se declara claro.
 
@@ -247,7 +249,7 @@ la variable temporal. Por esta razón declaran:
   "periodo": {"anios_completos": []},
   "pares": [],
   "limitacion": "El insumo disponible es una serie area-promedio sin dimensiones lat/lon; no se fabricaron píxeles ni pruebas de significancia.",
-  "fuente_periodo_disponible": {"inicio": 1996, "fin": 2026},
+  "fuente_periodo_disponible": {"inicio": 1996, "fin": 1996},
   "fdr": {"estado": "no_aplicable_sin_malla"}
 }
 ```
@@ -255,7 +257,8 @@ la variable temporal. Por esta razón declaran:
 - `periodo.inicio` y `periodo.fin` son la ventana común del proyecto (2000-2025),
   no la serie que trae el insumo.
 - `fuente_periodo_disponible` dice qué años cubre realmente el archivo descargado.
-  Puede ser más ancho que la ventana de análisis y no es la serie publicada.
+  No es la serie publicada: en el insumo actual de MERRA-2 el archivo trae un solo
+  año (1996), por eso `inicio` y `fin` coinciden, mientras IMERG trae 1998.
 - `fdr.estado` explica por qué no hay significancias: no hay malla sobre la que
   probar.
 
@@ -348,4 +351,4 @@ y ninguna pareja.
 |------|---------|-------------|
 | Malla con pares | `frontend/public/data/honduras/mod13c2_ndvi.json` | 5538 celdas probadas, 2747 significativas y 1119 pares porque hay celdas en ambos sentidos. |
 | Malla sin pares | `frontend/public/data/honduras/merra2_t2m.json` | 110 celdas probadas y 45 significativas, todas crecientes, así que `pares` queda vacío. |
-| Promedio de área | `frontend/public/data/honduras/merra2_precipitacion.json` | 0 celdas, `fdr.estado` en `no_aplicable_sin_malla` y `fuente_periodo_disponible` de 1996 a 2026. |
+| Promedio de área | `frontend/public/data/honduras/merra2_precipitacion.json` | 0 celdas, `fdr.estado` en `no_aplicable_sin_malla` y `fuente_periodo_disponible` con un solo año, 1996. |
