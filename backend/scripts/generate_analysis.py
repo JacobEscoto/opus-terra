@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from opusterra import mod13c2
 from opusterra.enso import cargar_oni, remover_enso
 from opusterra.tendencia import fdr_benjamini_hochberg, mann_kendall, pendiente_sen
 
@@ -108,7 +109,14 @@ def _cargar_malla_t2m() -> xr.DataArray:
     return xr.concat(partes, dim="time").assign_coords(time=esperados.to_timestamp())
 
 
-def _analizar_malla(da: xr.DataArray, nombre: str, unidad: str, fuente: str) -> dict:
+def _analizar_malla(
+    da: xr.DataArray,
+    nombre: str,
+    unidad: str,
+    fuente: str,
+    calidad: dict | None = None,
+    limitacion: str | None = None,
+) -> dict:
     if nombre[0] == "merra2_t2m":
         da = da - 273.15
         da.attrs["units"] = "degC"
@@ -117,6 +125,12 @@ def _analizar_malla(da: xr.DataArray, nombre: str, unidad: str, fuente: str) -> 
     anomalia = da.groupby("time.month") - climatologia
     fechas = pd.DatetimeIndex(anomalia.time.values)
     ancha = anomalia.to_series().unstack(["lat", "lon"])
+    # Una celda con algún mes no confiable no puede sostener la serie anual
+    # completa que exige el resto del pipeline, así que se descarta entera.
+    completas = ancha.notna().all(axis=0)
+    celdas_descartadas = int((~completas).sum())
+    if celdas_descartadas:
+        ancha = ancha.loc[:, completas]
     oni = cargar_oni(ROOT / "data" / "external" / "nino-3.4" / "iersst_nino3.4a_1996_2026.nc")
     residuos, coeficientes, r2 = remover_enso(ancha, oni)
     anios = _periodos_completos(pd.DatetimeIndex(residuos.index))
@@ -158,7 +172,7 @@ def _analizar_malla(da: xr.DataArray, nombre: str, unidad: str, fuente: str) -> 
     for registro, significativa in zip(registros, mascara, strict=True):
         registro["significativa_fdr"] = bool(significativa)
     significativos = [registro for registro in registros if registro["significativa_fdr"]]
-    resultado = _base(fuente, nombre[0], nombre[1], unidad, (anios[0], anios[-1]))
+    resultado = _base(fuente, nombre[0], nombre[1], unidad, (anios[0], anios[-1]), limitacion=limitacion)
     resultado["pixeles_probados"] = len(registros)
     resultado["pixeles_significativos_fdr"] = len(significativos)
     resultado["resultados_pixeles"] = registros
@@ -168,7 +182,39 @@ def _analizar_malla(da: xr.DataArray, nombre: str, unidad: str, fuente: str) -> 
     resultado["periodo"]["meses"] = int(len(fechas))
     resultado["periodo"]["anios_completos"] = anios
     resultado["fdr"]["p_valores_probados"] = len(pvalores)
+    if calidad is not None:
+        calidad = {**calidad, "celdas_descartadas_por_calidad": celdas_descartadas}
+        resultado["calidad"] = calidad
+        resultado["metodologia"]["mascara_calidad"] = mod13c2.DESCRIPCION_CRITERIO
     return resultado
+
+
+def _analizar_malla_mod13c2() -> dict:
+    """Analiza el NDVI de MOD13C2 con la misma cadena que MERRA-2.
+
+    La única diferencia es el paso previo de control de calidad: el NDVI solo
+    entra al pipeline en las celda-mes que MOD13C2 marca como confiables.
+    """
+
+    cubo = mod13c2.cargar_cubo(RAW / "mod13c2", INICIO, FIN)
+    mascara, conteos = mod13c2.mascara_confiable(cubo)
+    ndvi = mod13c2.ndvi_mascarado(cubo, mascara)
+    resumen = mod13c2.resumen_calidad(
+        mascara, conteos, pd.DatetimeIndex(cubo.time.values)
+    )
+    return _analizar_malla(
+        ndvi,
+        ("mod13c2_ndvi", "Índice de vegetación de diferencia normalizada (NDVI)"),
+        "NDVI (adimensional)",
+        "NASA MODIS MOD13C2 v061 (CMG 0.05° mensual)",
+        calidad=resumen,
+        limitacion=(
+            "La serie analizada es el residuo mensual sin estacionalidad ni ENSO, por lo que "
+            "cambio_porcentual se calcula sobre valores residuales cercanos a cero y no debe "
+            "leerse como cambio de cobertura vegetal. El recorte MOD13C2 corresponde al bbox de "
+            "Honduras con margen e incluye celdas de países vecinos y del mar."
+        ),
+    )
 
 
 def _sin_malla_precipitacion(
@@ -218,10 +264,12 @@ def main() -> None:
         "NASA GPM IMERG v07",
         "mm/hr",
     )
+    ndvi = _analizar_malla_mod13c2()
     for nombre, contenido in (
         ("merra2_t2m.json", t2m),
         ("merra2_precipitacion.json", precipitacion_merra),
         ("imerg_precipitacion.json", imerg),
+        ("mod13c2_ndvi.json", ndvi),
     ):
         (OUTPUT / nombre).write_text(json.dumps(contenido, ensure_ascii=False, indent=2) + "\n")
         print(f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR")
