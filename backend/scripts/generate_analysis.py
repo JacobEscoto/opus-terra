@@ -320,6 +320,16 @@ def _sin_malla_precipitacion(
     ruta: Path, variable: str, nombre: str, fuente: str, unidad: str, region: Region
 ) -> dict:
     with xr.open_dataset(ruta, decode_times=True) as dataset:
+        if variable == "imerg_precipitacion":
+            latitud = dataset.sizes.get("lat")
+            longitud = dataset.sizes.get("lon")
+            print(f"IMERG: {ruta.resolve()}")
+            print(f"IMERG dimensiones lat/lon: {latitud}x{longitud}")
+            if (latitud, longitud) == (1800, 3600):
+                raise ValueError(
+                    f"IMERG en {ruta} es un mapa global (lon=3600, lat=1800); "
+                    "se detiene para no promediar el mundo como si fuera la región."
+                )
         inicio = int(str(dataset.time.values[0])[:4])
         fin = int(str(dataset.time.values[-1])[:4])
     resultado = _base(
@@ -337,15 +347,56 @@ def _sin_malla_precipitacion(
     resultado["fuente_periodo_disponible"] = {"inicio": inicio, "fin": fin}
     resultado["periodo"]["mes_inicio"] = str(INICIO)
     resultado["periodo"]["mes_fin"] = str(FIN)
+    resultado["periodo"]["meses"] = 308
     resultado["periodo"]["anios_completos"] = []
     resultado["fdr"]["estado"] = "no_aplicable_sin_malla"
     return resultado
 
 
-def _buscar_precipitacion(raw: Path, patron: str) -> Path:
-    rutas = sorted((raw / "precipitation").glob(patron))
+def _buscar_precipitacion(
+    raw: Path,
+    patron: str,
+    *,
+    subdirectorio: str | None = None,
+    variable: str | None = None,
+) -> Path:
+    if subdirectorio is None:
+        if patron == "*tavgM_2d_flx*.nc":
+            subdirectorio = "merra2_flx"
+        elif patron == "3B-MO*.nc":
+            subdirectorio = "gpm_imerg"
+        else:
+            subdirectorio = "precipitation"
+    directorio = raw / subdirectorio
+    rutas = sorted(directorio.glob(patron))
     if not rutas:
-        raise FileNotFoundError(f"No se encontró el archivo de precipitación {patron} en {raw / 'precipitation'}.")
+        raise FileNotFoundError(
+            f"No se encontraron archivos de precipitación con el patrón {patron} en {directorio}."
+        )
+
+    meses = set()
+    for ruta in rutas:
+        coincidencias = re.findall(r"(?<!\d)(20\d{2})(\d{2})(?:\d{2})?(?!\d)", ruta.name)
+        for anio, mes in coincidencias:
+            periodo = pd.Period(f"{anio}-{mes}", freq="M")
+            if INICIO <= periodo <= FIN:
+                meses.add(periodo)
+                break
+    if len(meses) != 308:
+        raise RuntimeError(
+            f"Precipitación en {directorio}: se encontraron {len(meses)} meses dentro de "
+            f"{INICIO} a {FIN}; se requieren 308."
+        )
+
+    if variable is not None:
+        for ruta in rutas:
+            with xr.open_dataset(ruta) as dataset:
+                if variable not in dataset.variables:
+                    raise ValueError(f"No se encontró {variable} en {ruta.resolve()}")
+
+    print(f"Precipitación: {directorio.resolve()}")
+    print(f"Primer archivo: {rutas[0].resolve()}")
+    print(f"Archivos encontrados: {len(rutas)}")
     return rutas[0]
 
 
@@ -392,7 +443,11 @@ def main() -> None:
         region=region,
     )
     precipitacion_merra = _sin_malla_precipitacion(
-        _buscar_precipitacion(raw, "*M2TMNXFLX*PRECTOTCORR*.nc"),
+        _buscar_precipitacion(
+            raw,
+            "*tavgM_2d_flx*.nc",
+            variable="PRECTOTCORR",
+        ),
         "merra2_precipitacion",
         "Precipitación MERRA-2 PRECTOTCORR",
         "NASA MERRA-2 M2TMNXFLX v5.12.4",
@@ -400,7 +455,7 @@ def main() -> None:
         region,
     )
     imerg = _sin_malla_precipitacion(
-        _buscar_precipitacion(raw, "*GPM_3IMERGM*precipitation*.nc"),
+        _buscar_precipitacion(ROOT / "data" / "raw", "3B-MO*.nc"),
         "imerg_precipitacion",
         "Precipitación GPM IMERG",
         "NASA GPM IMERG v07",
