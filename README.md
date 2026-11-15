@@ -1,4 +1,4 @@
-# Trend Detective
+# 🌍 OpusTerra by Pegaso-X
 
 **El globo terráqueo 3D que revela dónde el planeta cambia en direcciones opuestas, comprueba que el cambio es real y explica qué lo provoca.**
 
@@ -28,7 +28,7 @@ Hoy existen mapas y visores que muestran colores sobre el planeta, e incluso map
 - **No distinguen lo real de la casualidad.** Un vaivén natural del clima se ve igual que una tendencia nueva y significativa.
 - **No hablan en lenguaje claro.** Suelen dejar al usuario frente a números sueltos sin contexto.
 
-**Trend Detective** cierra esas cuatro brechas: encuentra los contrastes por sí solo, los explica, separa la señal real del ruido natural y lo cuenta con palabras normales.
+**OpusTerra** cierra esas cuatro brechas: encuentra los contrastes por sí solo, los explica, separa la señal real del ruido natural y lo cuenta con palabras normales.
 
 ---
 
@@ -77,15 +77,6 @@ El backend descarga solo las variables y celdas de la región mediante OPeNDAP, 
 
 ---
 
-## En quién está pensado
-
-- **Juries y evaluadores** del NASA Space Apps, que necesitan ver el valor en pocos minutos.
-- **Docentes y estudiantes** que explican cambios climáticos y quieren una fuente visual y honesta.
-- **Personas con curiosidad por el clima** que quieren explorar datos satelitales reales sin ser expertas en estadística.
-- **Equipos de investigación** que necesitan un punto de partida visual para investigar contrastes regionales.
-
----
-
 ## Empezar
 
 ```bash
@@ -105,6 +96,8 @@ La guía completa está en [`frontend/README.md`](frontend/README.md) y [`backen
 
 ## Licencia
 
-MIT License
+MIT License — ver [`LICENSE`](LICENSE).
 
-Copyright (c) 2026 JacobEscoto — ver [`LICENSE`](LICENSE).
+---
+
+Made with ❤️ by Pegaso-X from 🇭🇳
