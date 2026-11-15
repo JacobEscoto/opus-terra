@@ -1,102 +1,107 @@
 # 🌍 OpusTerra by Pegaso-X
 
-**El globo terráqueo 3D que revela dónde el planeta cambia en direcciones opuestas, comprueba que el cambio es real y explica qué lo provoca.**
+**Aplicación web para explorar tendencias ambientales en Honduras mediante un globo terráqueo 3D y comparaciones entre zonas.**
 
 NASA Space Apps 2026 · Honduras
 
 ---
 
-## El reto
+## Objetivo
 
-La NASA nos pide construir un software que muestre **cómo está cambiando la Tierra con el paso del tiempo** usando datos de sus satélites. No basta con dibujar mapas bonitos. Hay que responder cuatro preguntas:
+OpusTerra presenta cambios ambientales de largo plazo de una forma visual y comprensible. La aplicación ayuda a responder:
 
-1. **¿Qué está cambiando?**
-2. **¿Dónde?**
-3. **¿Cuánto?**
-4. **¿Es un cambio real o pudo ser casualidad?**
+- qué variable se está observando;
+- en qué zonas aparece un cambio;
+- cuál es la dirección y el tamaño aproximado de ese cambio;
+- qué zonas muestran comportamientos opuestos.
 
-Y hay un detalle que lo cambia todo: **una misma causa puede tener efectos opuestos en distintas regiones**. Un mismo fenómeno puede traer más lluvia a un lugar y sequía a otro. El reto pide descubrir y explicar esos contrastes.
-
----
-
-## El problema que resolvemos
-
-Hoy existen mapas y visores que muestran colores sobre el planeta, e incluso mapas de tendencias. Pero les falta lo más importante:
-
-- **No señalan dónde mirar.** El usuario tiene que saber de antemano qué región le interesa.
-- **No explican el porqué.** Muestran *que* algo cambia, no *por qué* dos lugares se comportan de forma contraria.
-- **No distinguen lo real de la casualidad.** Un vaivén natural del clima se ve igual que una tendencia nueva y significativa.
-- **No hablan en lenguaje claro.** Suelen dejar al usuario frente a números sueltos sin contexto.
-
-**OpusTerra** cierra esas cuatro brechas: encuentra los contrastes por sí solo, los explica, separa la señal real del ruido natural y lo cuenta con palabras normales.
+El proyecto no sustituye una medición directa. Presenta resultados de análisis elaborados a partir de productos ambientales de NASA y NOAA.
 
 ---
 
-## Qué hace la aplicación
+## Funcionalidades actuales
 
-- **Globo 3D interactivo.** Los colores muestran, región por región, si la variable está subiendo o bajando. Al abrir un par, la atmósfera se ilumina de forma pareja para señalar el contraste.
-- **Línea de tiempo.** Mueve el periodo activo y observa cómo evoluciona el planeta año tras año.
-- **Pares de contraste automáticos.** La app propone regiones con tendencias opuestas: una donde algo sube y otra donde baja. No tienes que adivinar dónde mirar.
-- **Panel comparativo.** Al elegir un par, un panel compara ambas regiones lado a lado con una explicación corta y sencilla de por qué cambian distinto.
-- **Marcas de confiabilidad.** Cuando la señal no alcanza significancia estadística, se marca como tal. Preferimos decir "no estamos seguros" antes que exagerar.
-- **Contexto de salud.** Una tarjeta explica qué significa ese nivel para las personas, con las guías de la Organización Mundial de la Salud (OMS). Sin diagnósticos.
-- **Sin instalación.** Se abre en el navegador, funciona en computadora y celular.
+- **Globo 3D interactivo.** Muestra las zonas con cambios claros sobre la superficie de la Tierra.
+- **Selector de variables.** Permite consultar temperatura, precipitación de MERRA-2, precipitación GPM IMERG y vegetación mediante NDVI.
+- **Marcadores de tendencia.** Diferencia visualmente los cambios al alza y a la baja.
+- **Comparaciones automáticas.** Presenta pares de zonas con tendencias opuestas para facilitar la exploración.
+- **Tarjetas comparativas.** Muestran el nombre de cada zona, su dirección de cambio, el cambio acumulado estimado y sus coordenadas técnicas.
+- **Línea de tiempo.** Permite consultar los años disponibles cuando la variable incluye una serie anual por zona.
+- **Panel de resultados.** Resume el periodo, la fuente, la unidad y la cantidad de zonas analizadas.
+- **Páginas informativas.** Incluye un glosario, fuentes de datos y la información del proyecto y sus participantes.
+- **Diseño adaptable.** La interfaz funciona en pantallas de escritorio y dispositivos móviles.
+
+La aplicación no ofrece diagnósticos, alertas ni recomendaciones de salud.
 
 ---
 
-## Datos que usamos
+## Datos utilizados
 
-Solo datos reales y verificables de la NASA y NOAA, recortados para la región de interés:
+Los datos públicos de la aplicación corresponden a Honduras y se procesan con una ventana común de análisis cuando la variable lo permite.
 
-| Variable | Producto | Versión | Resolución | Cobertura |
-|----------|----------|---------|------------|-----------|
+| Variable | Producto | Versión | Resolución | Cobertura de referencia |
+|----------|----------|---------|------------|-------------------------|
 | Precipitación observada | GPM IMERG | 07 | 0.1° × 0.1° | 1998-01 → 2025-09 |
-| Precipitación modelada (PRECTOTCORR) | MERRA-2 flux (M2TMNXFLX) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
-| Temperatura a nivel del suelo (T2M) | MERRA-2 superficie (M2TMNXSLV) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
+| Precipitación modelada | MERRA-2 flux (M2TMNXFLX) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
+| Temperatura del aire a 2 m | MERRA-2 superficie (M2TMNXSLV) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
 | Vegetación (NDVI) | MODIS MOD13C2 | 061 | 0.05° × 0.05° | 2000-02 → 2026-10 |
-| Índice Niño 3.4 (ONI) | NOAA / KNMI | — | — | 1996 → presente |
 
-- **Centro de distribución:** NASA GES DISC. **Acceso:** Earthdata Search y OPeNDAP con recorte regional.
-- **Ventana común de análisis:** 2000-02-01 a 2025-09-01, la intersección de las tres coberturas, para que todas las variables sean directamente comparables.
-- **Formatos de entrega:** NetCDF como formato principal y GeoTIFF como respaldo.
+La ventana común utilizada por los análisis actuales es `2000-02`–`2025-09`. Los archivos de resultados se encuentran en `frontend/public/data/honduras/`.
 
-> Las citas requeridas por producto y el detalle de cobertura están en [`docs/data-sources.md`](docs/data-sources.md). Las limitaciones del método están en [`docs/limitations.md`](docs/limitations.md).
+- **Distribución:** NASA GES DISC, Earthdata Search y OPeNDAP.
+- **Procesamiento:** los recortes de MERRA-2 se solicitan para la región de interés, no como archivos globales completos.
+- **Formatos de trabajo:** NetCDF4 y GeoTIFF cuando se necesita una capa raster.
+
+Las fuentes y sus identificadores están documentados en [`docs/data-sources.md`](docs/data-sources.md). El contrato de los JSON está descrito en [`docs/json-contract.md`](docs/json-contract.md).
 
 ---
 
-## Cómo lo construimos
+## Tecnología
 
 | Capa | Tecnología |
 |------|-----------|
-| Interfaz | Svelte 5 + TypeScript + Vite |
+| Interfaz | Svelte 5, TypeScript y Vite |
 | Globo 3D | three.js |
-| Datos | Python + `earthaccess` + `pydap` (OPeNDAP) + `xarray` / `rioxarray` |
-| Formatos | NetCDF4 (principal) + GeoTIFF (respaldo) |
-
-El backend descarga solo las variables y celdas de la región mediante OPeNDAP, en lugar de bajar archivos globales de cientos de megabytes. El detalle de cada decisión de diseño está en [`docs/decisions/`](docs/decisions/).
+| Procesamiento | Python, xarray y rioxarray |
+| Acceso a datos | earthaccess y pydap (OPeNDAP) |
+| Formatos | NetCDF4 y GeoTIFF |
 
 ---
 
 ## Empezar
 
+### Interfaz
+
 ```bash
-# Frontend (Svelte + Vite)
 cd frontend
 pnpm install
 pnpm run dev
+```
 
-# Backend (descarga de datos NASA)
+La aplicación estará disponible en `http://localhost:5173`.
+
+Comandos útiles:
+
+```bash
+pnpm run check    # Comprueba Svelte y TypeScript
+pnpm run build    # Genera la versión de producción
+pnpm run preview  # Sirve localmente la versión de producción
+```
+
+### Backend
+
+```bash
 cd backend
 uv sync
 ```
 
-La guía completa está en [`frontend/README.md`](frontend/README.md) y [`backend/README.md`](backend/README.md).
+La guía específica está en [`frontend/README.md`](frontend/README.md) y [`backend/README.md`](backend/README.md).
 
 ---
 
 ## Licencia
 
-MIT License — ver [`LICENSE`](LICENSE).
+MIT License. Consulta el archivo [`LICENSE`](LICENSE).
 
 ---
 
