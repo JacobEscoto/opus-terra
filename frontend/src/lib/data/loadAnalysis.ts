@@ -1,20 +1,22 @@
 /**
  * Cargador del JSON de análisis.
  *
- * `mock.json` es la única fuente de datos de la interfaz: se lee por `fetch`
- * (la URL la resuelve Vite, funciona igual en dev y en build) para que la UI
- * tenga estados reales de carga y error cuando el JSON no está disponible.
+ * Los tres JSON públicos se leen por `fetch` para que la UI valide la misma
+ * estructura que recibirá en producción.
  */
-import mockUrl from './mock.json?url'
 import type {
   AnalisisTendencias,
   ParRegiones,
   RegionAnalizada,
+  ResultadoPixel,
   Tendencia,
 } from '../types/analysis'
 
-/** URL resuelta por Vite del JSON de análisis. */
-const URL_DATOS: string = mockUrl
+const URLS_DATOS = [
+  '/data/merra2_t2m.json',
+  '/data/merra2_precipitacion.json',
+  '/data/imerg_precipitacion.json',
+]
 
 /** Estado de la carga de datos para toda la interfaz. */
 export type EstadoCarga =
@@ -71,6 +73,22 @@ function validarPar(valor: unknown, indice: number): ParRegiones {
   }
 }
 
+/** Valida el resultado estadístico de una celda antes de mostrarlo. */
+function validarPixel(valor: unknown, indice: number): ResultadoPixel {
+  if (typeof valor !== 'object' || valor === null) {
+    fallar(`El resultado de píxel ${indice + 1} no es un objeto válido.`)
+  }
+  const pixel = valor as Record<string, unknown>
+  const numericos = ['lat', 'lon', 'mann_kendall_z', 'p_valor', 'sen_unidad_por_anio']
+  if (numericos.some((campo) => typeof pixel[campo] !== 'number' || !Number.isFinite(pixel[campo]))) {
+    fallar(`El resultado de píxel ${indice + 1} tiene valores numéricos inválidos.`)
+  }
+  if (typeof pixel.direccion !== 'string' || typeof pixel.significativa_fdr !== 'boolean') {
+    fallar(`El resultado de píxel ${indice + 1} está incompleto.`)
+  }
+  return pixel as unknown as ResultadoPixel
+}
+
 /** Verifica que la respuesta tenga la forma mínima del contrato acordado. */
 function validarAnalisis(datos: unknown): AnalisisTendencias {
   if (typeof datos !== 'object' || datos === null) {
@@ -94,8 +112,21 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
   if (typeof d.contexto_oms !== 'string') {
     fallar('El JSON de análisis no incluye el contexto de la OMS.')
   }
-  if (!Array.isArray(d.pares) || d.pares.length === 0) {
-    fallar('El JSON de análisis no incluye pares de regiones.')
+  if (!Number.isInteger(d.pixeles_probados) || (d.pixeles_probados as number) < 0) {
+    fallar('El JSON de análisis no declara un número válido de píxeles probados.')
+  }
+  if (
+    !Number.isInteger(d.pixeles_significativos_fdr) ||
+    (d.pixeles_significativos_fdr as number) < 0 ||
+    (d.pixeles_significativos_fdr as number) > (d.pixeles_probados as number)
+  ) {
+    fallar('El JSON de análisis no declara un número válido de píxeles significativos.')
+  }
+  if (!Array.isArray(d.pares)) {
+    fallar('El JSON de análisis no declara una lista de pares válida.')
+  }
+  if (!Array.isArray(d.resultados_pixeles)) {
+    fallar('El JSON de análisis no declara una lista de resultados por píxel válida.')
   }
   return {
     fuente: d.fuente as string,
@@ -105,25 +136,34 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
     periodo: d.periodo as AnalisisTendencias['periodo'],
     contexto_oms: d.contexto_oms as string,
     pares: d.pares.map(validarPar),
+    pixeles_probados: d.pixeles_probados as number,
+    pixeles_significativos_fdr: d.pixeles_significativos_fdr as number,
+    resultados_pixeles: d.resultados_pixeles.map(validarPixel),
+    limitacion: typeof d.limitacion === 'string' ? d.limitacion : undefined,
   }
 }
 
 /** Lee y valida el JSON de análisis; lanza un error con mensaje claro. */
 export async function cargarAnalisis(): Promise<AnalisisTendencias> {
-  let respuesta: Response
-  try {
-    respuesta = await fetch(URL_DATOS)
-  } catch {
-    fallar('No se pudo conectar para leer el JSON de análisis.')
-  }
-  if (!respuesta.ok) {
-    fallar(`El JSON de análisis no se pudo leer (HTTP ${respuesta.status}).`)
-  }
-  let datos: unknown
-  try {
-    datos = await respuesta.json()
-  } catch {
-    fallar('El JSON de análisis no es un documento válido.')
-  }
-  return validarAnalisis(datos)
+  const respuestas = await Promise.all(
+    URLS_DATOS.map(async (url) => {
+      let respuesta: Response
+      try {
+        respuesta = await fetch(url)
+      } catch {
+        fallar(`No se pudo conectar para leer ${url}.`)
+      }
+      if (!respuesta.ok) {
+        fallar(`El JSON de análisis no se pudo leer (HTTP ${respuesta.status}): ${url}.`)
+      }
+      let datos: unknown
+      try {
+        datos = await respuesta.json()
+      } catch {
+        fallar(`El JSON de análisis no es válido: ${url}.`)
+      }
+      return validarAnalisis(datos)
+    })
+  )
+  return { ...respuestas[0], analisis: respuestas }
 }

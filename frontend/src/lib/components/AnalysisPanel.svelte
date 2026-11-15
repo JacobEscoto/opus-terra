@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { EstadoCarga } from '../data/loadAnalysis'
-  import type { ParRegiones } from '../types/analysis'
+  import type { AnalisisTendencias, ParRegiones } from '../types/analysis'
   import Legend from './Legend.svelte'
   import PairList from './PairList.svelte'
   import RegionCard from './RegionCard.svelte'
@@ -18,15 +18,24 @@
   let { carga, parSeleccionado, onSeleccionar, onVolver, onReintentar }: Props = $props()
 
   const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
+  const conjuntos = $derived(datos?.analisis ?? (datos ? [datos] : []))
+
+  function esPromedioDeArea(conjunto: AnalisisTendencias): boolean {
+    return conjunto.pixeles_probados === 0 && conjunto.limitacion?.includes('area-promedio') === true
+  }
+
+  function celdasSignificativas(conjunto: AnalisisTendencias) {
+    return conjunto.resultados_pixeles.filter((pixel) => pixel.significativa_fdr)
+  }
 </script>
 
 <section class="panel" aria-label="Análisis de tendencias por pares de regiones">
   <header class="panel__head">
     <div class="panel__fila">
       <p class="kicker"><span>02</span>Análisis de tendencias</p>
-      {#if datos}
-        <span class="panel__mock" title="Los datos provienen del archivo mock.json">
-          Datos de prueba / {datos.fuente}
+    {#if datos}
+        <span class="panel__mock" title="Datos procesados del backend">
+          Datos procesados / Honduras
         </span>
       {/if}
     </div>
@@ -71,11 +80,53 @@
   {:else if datos}
     <div class="panel__cuerpo">
       <Legend />
-      <PairList
-        pares={datos.pares}
-        seleccionadoId={parSeleccionado?.id ?? null}
-        onSeleccionar={onSeleccionar}
-      />
+      {#each conjuntos as conjunto (conjunto.variable)}
+        <article class="conjunto" aria-labelledby={`titulo-${conjunto.variable}`}>
+          <div class="conjunto__cabecera">
+            <div>
+              <p class="conjunto__fuente">{conjunto.fuente}</p>
+              <h3 id={`titulo-${conjunto.variable}`}>{conjunto.nombre_variable}</h3>
+            </div>
+            <span class="conjunto__periodo">{conjunto.periodo.inicio}–{conjunto.periodo.fin}</span>
+          </div>
+
+          {#if esPromedioDeArea(conjunto)}
+            <div class="estado-datos estado-datos--area">
+              <strong>Promedio de área: no hay análisis por píxel</strong>
+              <p>{conjunto.pixeles_probados} píxeles probados · {conjunto.pixeles_significativos_fdr} significativos</p>
+            </div>
+          {:else if conjunto.pares.length === 0}
+            <div class="estado-datos">
+              <strong>Sin pares de tendencias opuestas significativas</strong>
+              <p>{conjunto.pixeles_probados} píxeles probados · {conjunto.pixeles_significativos_fdr} significativos tras FDR</p>
+            </div>
+          {:else}
+            <PairList
+              pares={conjunto.pares}
+              seleccionadoId={parSeleccionado?.id ?? null}
+              onSeleccionar={onSeleccionar}
+            />
+          {/if}
+
+          {#if conjunto.fuente.includes('MERRA-2')}
+            <p class="resolucion">Resolución MERRA-2: cada celda representa aproximadamente 0.5° × 0.625°.</p>
+          {/if}
+
+          {#if conjunto.variable === 'merra2_t2m'}
+            <div class="celdas" aria-label="Celdas T2M significativas">
+              <h4>Celdas significativas</h4>
+              {#each celdasSignificativas(conjunto) as pixel}
+                <div class="celda">
+                  <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
+                  <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
+                    {pixel.sen_unidad_por_anio > 0 ? '+' : '−'}{Math.abs(pixel.sen_unidad_por_anio).toFixed(5)} °C/año
+                  </span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </article>
+      {/each}
     </div>
   {/if}
 </section>
@@ -164,6 +215,90 @@
     display: grid;
     gap: 16px;
     padding-top: 15px;
+  }
+
+  .conjunto {
+    display: grid;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .conjunto__cabecera {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .conjunto__fuente,
+  .conjunto__periodo,
+  .resolucion,
+  .celda,
+  .estado-datos p {
+    font: 10px/1.5 var(--mono);
+    color: var(--faint);
+  }
+
+  .conjunto h3 {
+    margin-top: 3px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .conjunto__periodo {
+    white-space: nowrap;
+  }
+
+  .estado-datos {
+    display: grid;
+    gap: 4px;
+    padding: 11px 12px;
+    border-left: 2px solid var(--amber);
+    background: rgb(255 255 255 / 3%);
+  }
+
+  .estado-datos strong {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .estado-datos p {
+    margin: 0;
+  }
+
+  .estado-datos--area {
+    border-left-color: var(--muted);
+  }
+
+  .resolucion {
+    margin: 0;
+  }
+
+  .celdas {
+    display: grid;
+    gap: 5px;
+  }
+
+  .celdas h4 {
+    margin: 0 0 3px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .celda {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgb(255 255 255 / 8%);
+  }
+
+  .celda--positiva {
+    color: var(--amber);
+  }
+
+  .celda--negativa {
+    color: var(--ink);
   }
 
   .detalle {

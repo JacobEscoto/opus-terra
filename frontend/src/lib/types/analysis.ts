@@ -2,8 +2,7 @@
  * Contrato JSON del análisis de tendencias.
  *
  * Este tipo es la descripción canónica del intercambio entre el backend y la
- * interfaz. Por ahora la única fuente de datos es `../data/mock.json`, que
- * sigue exactamente esta estructura.
+ * interfaz.
  */
 
 /** Dirección del cambio detectado en la serie de una región. */
@@ -38,11 +37,26 @@ export interface ParRegiones {
 export interface PeriodoAnalisis {
   inicio: number
   fin: number
+  mes_inicio?: string
+  mes_fin?: string
+  meses?: number
+  anios_completos?: number[]
+}
+
+/** Resultado estadístico de una celda de la malla. */
+export interface ResultadoPixel {
+  lat: number
+  lon: number
+  mann_kendall_z: number
+  p_valor: number
+  direccion: string
+  sen_unidad_por_anio: number
+  significativa_fdr: boolean
 }
 
 /** Respuesta completa del análisis de tendencias. */
 export interface AnalisisTendencias {
-  /** Origen de los datos; "mock" marca que son datos de prueba. */
+  /** Origen del producto de datos. */
   fuente: string
   /** Identificador de la variable analizada (p. ej. "clorofila_a"). */
   variable: string
@@ -56,4 +70,14 @@ export interface AnalisisTendencias {
   contexto_oms: string
   /** Pares de regiones propuestos por el análisis. */
   pares: ParRegiones[]
+  /** Número de celdas evaluadas estadísticamente. */
+  pixeles_probados: number
+  /** Número de celdas significativas después de FDR. */
+  pixeles_significativos_fdr: number
+  /** Resultados individuales de las celdas. */
+  resultados_pixeles: ResultadoPixel[]
+  /** Conjuntos cargados en la misma respuesta. */
+  analisis?: AnalisisTendencias[]
+  /** Texto disponible para productos sin malla espacial. */
+  limitacion?: string
 }
