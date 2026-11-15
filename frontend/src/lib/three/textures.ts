@@ -154,43 +154,30 @@ export function createCloudTexture(image: HTMLImageElement, boost = 0.82): THREE
 
 /**
  * Procedural space environment used for the reflections on the oceans.
- * A tiny equirectangular gradient is enough and keeps the project free of
- * extra binary assets.
+ *
+ * This deliberately uses six initialized faces instead of PMREM's generated
+ * render target. Firefox otherwise reports a lazy cubemap mipmap warning on
+ * the first render, even though the environment is valid.
  */
-export function createSpaceEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
-  const width = 256
-  const height = 128
+export function createSpaceEnvironment(): THREE.CubeTexture {
+  const colors = ['#0a1220', '#0b1220', '#101a2c', '#05080f', '#17243a', '#0b1220']
+  const faces = colors.map((color) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 4
+    canvas.height = 4
+    const context = canvas.getContext('2d')!
+    context.fillStyle = color
+    context.fillRect(0, 0, 4, 4)
+    return canvas
+  })
 
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-
-  const context = canvas.getContext('2d')!
-  const gradient = context.createLinearGradient(0, 0, 0, height)
-  gradient.addColorStop(0, '#0a1220')
-  gradient.addColorStop(0.45, '#0b1220')
-  gradient.addColorStop(0.75, '#101a2c')
-  gradient.addColorStop(1, '#05080f')
-  context.fillStyle = gradient
-  context.fillRect(0, 0, width, height)
-
-  // faint warm glow where the sun sits, so oceans catch a believable sheen
-  const sun = context.createRadialGradient(width * 0.62, height * 0.34, 0, width * 0.62, height * 0.34, width * 0.22)
-  sun.addColorStop(0, 'rgba(255, 236, 205, 0.55)')
-  sun.addColorStop(1, 'rgba(255, 236, 205, 0)')
-  context.fillStyle = sun
-  context.fillRect(0, 0, width, height)
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.mapping = THREE.EquirectangularReflectionMapping
+  const texture = new THREE.CubeTexture(faces)
   texture.colorSpace = THREE.SRGBColorSpace
-
-  const pmrem = new THREE.PMREMGenerator(renderer)
-  const envMap = pmrem.fromEquirectangular(texture).texture
-  pmrem.dispose()
-  texture.dispose()
-
-  return envMap
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
+  texture.generateMipmaps = false
+  texture.needsUpdate = true
+  return texture
 }
 
 /** Radial gradient used for the soft halo behind the planet. */

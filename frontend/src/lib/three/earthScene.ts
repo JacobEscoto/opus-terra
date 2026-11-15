@@ -10,11 +10,11 @@ import {
 } from './textures'
 
 const TEXTURES = {
-  day: '/textures/earth_day_4096.jpg',
-  night: '/textures/earth_night_4096.jpg',
-  specular: '/textures/earth_specular_2048.jpg',
-  normal: '/textures/earth_normal_2048.jpg',
-  clouds: '/textures/earth_clouds_1024.png',
+  day: `${import.meta.env.BASE_URL}textures/earth_day_4096.jpg`,
+  night: `${import.meta.env.BASE_URL}textures/earth_night_4096.jpg`,
+  specular: `${import.meta.env.BASE_URL}textures/earth_specular_2048.jpg`,
+  normal: `${import.meta.env.BASE_URL}textures/earth_normal_2048.jpg`,
+  clouds: `${import.meta.env.BASE_URL}textures/earth_clouds_1024.png`,
 }
 
 export interface EarthTelemetry {
@@ -80,6 +80,7 @@ export class EarthScene {
   private readonly disposables: Array<{ dispose: () => void }> = []
   private readonly raycaster = new THREE.Raycaster()
   private readonly pointer = new THREE.Vector2()
+  private readonly originalReleasePointerCapture: (pointerId: number) => void
   private earthMesh: THREE.Mesh | null = null
 
   private frame = 0
@@ -105,6 +106,16 @@ export class EarthScene {
     this.canvas = options.canvas
     this.spinSpeed = options.spinSpeed ?? 0.045
 
+    // OrbitControls releases the pointer unconditionally on pointerup. A
+    // cancelled gesture (or a hot reload) may already have lost the capture.
+    // Keep the control interaction, but make that cleanup operation harmless.
+    this.originalReleasePointerCapture = options.canvas.releasePointerCapture.bind(options.canvas)
+    options.canvas.releasePointerCapture = (pointerId: number) => {
+      if (options.canvas.hasPointerCapture(pointerId)) {
+        this.originalReleasePointerCapture(pointerId)
+      }
+    }
+
     this.renderer = new THREE.WebGLRenderer({
       canvas: options.canvas,
       antialias: true,
@@ -121,7 +132,7 @@ export class EarthScene {
     this.renderer.setClearColor(0x0b1220, 1)
 
     this.scene = new THREE.Scene()
-    this.scene.environment = createSpaceEnvironment(this.renderer)
+    this.scene.environment = createSpaceEnvironment()
     this.scene.environmentIntensity = 0.45
 
     this.camera = new THREE.PerspectiveCamera(
@@ -651,7 +662,28 @@ export class EarthScene {
     this.canvas.removeEventListener('pointerleave', this.handlePointerLeave)
     this.resizeObserver.disconnect()
 
+    // OrbitControls keeps document-level listeners while a gesture is active.
+    // Remove them before disposing the control so an old HMR scene cannot
+    // handle a later pointerup with a stale pointer id.
+    const activeControls = this.controls as unknown as {
+      _onPointerMove?: EventListener
+      _onPointerUp?: EventListener
+      _pointers?: number[]
+    }
+    if (activeControls._onPointerMove) {
+      document.removeEventListener('pointermove', activeControls._onPointerMove)
+    }
+    if (activeControls._onPointerUp) {
+      document.removeEventListener('pointerup', activeControls._onPointerUp)
+    }
+    for (const pointerId of activeControls._pointers ?? []) {
+      if (this.canvas.hasPointerCapture(pointerId)) {
+        this.originalReleasePointerCapture(pointerId)
+      }
+    }
+
     this.controls.dispose()
+    this.canvas.releasePointerCapture = this.originalReleasePointerCapture
     this.controls.removeEventListener('start', this.handleControlStart)
     this.earthMaterial.dispose()
     this.cloudMaterial.dispose()

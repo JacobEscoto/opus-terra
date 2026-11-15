@@ -6,6 +6,11 @@
   import { cargarVariable, CATALOGO, type EstadoCarga } from './lib/data/loadAnalysis'
   import { prepararCapa, tieneValoresAnuales } from './lib/data/capa'
   import type { ParRegiones } from './lib/types/analysis'
+  import GlobeLegend from './lib/components/GlobeLegend.svelte'
+  import Metodologia from './lib/components/paginas/Metodologia.svelte'
+  import Glosario from './lib/components/paginas/Glosario.svelte'
+  import AcercaDe from './lib/components/paginas/AcercaDe.svelte'
+  import { APP, AYUDA_MAPA, NAVEGACION } from './lib/data/textos'
 
   type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>
   type SetAutoRotate = (enabled: boolean) => void
@@ -29,6 +34,10 @@
   let timerRecorrido: ReturnType<typeof setTimeout> | null = null
   let recorridoToken = 0
   let enfoqueInicialHecho = false
+  type Pagina = 'metodologia' | 'glosario' | 'acerca'
+  let pagina = $state<Pagina | null>(null)
+  let enlaceQueAbrioPagina = $state<HTMLElement | null>(null)
+  let menuAbierto = $state(false)
 
   /**
    * En escritorio la columna del panel queda a la derecha: un offset negativo
@@ -49,6 +58,34 @@
       ? datos.pares.find((par) => par.id === idSeleccionado) ?? null
       : null
   )
+
+  function paginaDesdeHash() {
+    const hash = window.location.hash.slice(1)
+    pagina = hash === 'metodologia' || hash === 'glosario' || hash === 'acerca' ? hash : null
+  }
+
+  function abrirPagina(nombre: Pagina, evento?: MouseEvent) {
+    if (evento?.currentTarget instanceof HTMLElement) enlaceQueAbrioPagina = evento.currentTarget
+    mostrarAyuda = false
+    menuAbierto = false
+    window.location.hash = nombre
+  }
+
+  function cerrarPagina(restaurarFoco = false) {
+    window.location.hash = ''
+    if (restaurarFoco) requestAnimationFrame(() => enlaceQueAbrioPagina?.focus())
+  }
+
+  function manejarEscape(evento: KeyboardEvent) {
+    if (evento.key !== 'Escape') return
+    if (menuAbierto) {
+      menuAbierto = false
+      return
+    }
+    if (!pagina) return
+    evento.preventDefault()
+    cerrarPagina(true)
+  }
 
   function esperar(ms: number, token: number): Promise<boolean> {
     return new Promise((resolve) => {
@@ -143,13 +180,20 @@
 
   onMount(() => {
     void cambiarVariable(variableActiva)
+    paginaDesdeHash()
+    window.addEventListener('hashchange', paginaDesdeHash)
+    window.addEventListener('keydown', manejarEscape)
 
     // Sincroniza el desplazamiento del planeta con el punto de quiebre del layout.
     const consulta = window.matchMedia('(min-width: 1000px)')
     escritorio = consulta.matches
     const actualizar = (evento: MediaQueryListEvent) => (escritorio = evento.matches)
     consulta.addEventListener('change', actualizar)
-    return () => consulta.removeEventListener('change', actualizar)
+    return () => {
+      consulta.removeEventListener('change', actualizar)
+      window.removeEventListener('hashchange', paginaDesdeHash)
+      window.removeEventListener('keydown', manejarEscape)
+    }
   })
 
   onDestroy(() => {
@@ -187,32 +231,35 @@
 
 <main class="interface">
   <header class="masthead">
-    <span>OpusTerra by Pegaso-X</span>
-    <p class="welcome">Explora cómo cambian la temperatura, la lluvia y la vegetación del planeta.</p>
-    <button
-      class="about-button"
-      type="button"
-      aria-expanded={mostrarAyuda}
-      aria-controls="about-panel"
-      onclick={() => (mostrarAyuda = !mostrarAyuda)}
-    >¿Cómo leer este mapa?</button>
+    <span>{APP.marca}</span>
+    <button class="menu-button" type="button" aria-label={menuAbierto ? NAVEGACION.cerrarMenu : NAVEGACION.menu} aria-expanded={menuAbierto} aria-controls="site-menu" onclick={() => (menuAbierto = !menuAbierto)}>
+      <span></span><span></span><span></span>
+    </button>
   </header>
 
-  {#if mostrarAyuda}
-    <dialog id="about-panel" class="about-panel" aria-labelledby="about-title" open>
-      <h2 id="about-title">Un mapa para mirar cambios</h2>
-      <p>
-        OpusTerra reúne observaciones satelitales y modelos climáticos para ayudarte a explorar
-        dónde cambian la temperatura, la lluvia y la vegetación.
-      </p>
-      <p>
-        Elige una variable, gira el planeta y abre un contraste para leer la señal y su contexto.
-      </p>
-    </dialog>
+  {#if menuAbierto}
+    <div id="site-menu" class="site-menu" role="dialog" aria-label={NAVEGACION.menu}>
+      <nav aria-label="Secciones del sitio">
+        <a href="#metodologia" onclick={(evento) => abrirPagina('metodologia', evento)}>{NAVEGACION.metodologia}</a>
+        <a href="#glosario" onclick={(evento) => abrirPagina('glosario', evento)}>{NAVEGACION.glosario}</a>
+        <a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{NAVEGACION.acerca}</a>
+      </nav>
+      <button class="about-button" type="button" aria-expanded={mostrarAyuda} aria-controls="about-panel" onclick={() => (mostrarAyuda = !mostrarAyuda)}>{NAVEGACION.comoLeer}</button>
+      {#if mostrarAyuda}
+        <div id="about-panel" class="about-panel" aria-labelledby="about-title">
+          <h2 id="about-title">{APP.ayudaTitulo}</h2>
+          <p>{APP.ayudaTexto}</p>
+          <div class="help-links">{#each AYUDA_MAPA.enlaces as enlace}<a href={enlace.href} onclick={(evento) => abrirPagina(enlace.href.slice(1) as Pagina, evento)}>{enlace.texto}</a>{/each}</div>
+        </div>
+      {/if}
+    </div>
   {/if}
 
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
+    <div class="legend-slot">
+      <GlobeLegend anio={anio} mostrarAnio={anualesDisponibles} />
+    </div>
     <div class="timeline-slot">
       {#if datos}
         <TimelineControl
@@ -220,7 +267,7 @@
            fin={datos.periodo.fin}
            bind:anio
            disponible={anualesDisponibles}
-           aviso="Esta variable no incluye una serie anual por celda."
+            aviso={APP.avisoSinSerie}
         />
       {/if}
     </div>
@@ -252,10 +299,16 @@
   </aside>
 
   <footer class="credits">
-    <p>Fuentes: NASA MERRA-2, MODIS, GPM, NOAA/KNMI.</p>
-    <p>Información ambiental; no es un diagnóstico de salud.</p>
+    <p><a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{APP.fuentesPie}</a></p>
+    <p><a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{APP.aclaracion}</a></p>
   </footer>
 </main>
+
+{#if pagina}
+  <div class="page-layer" role="dialog" aria-modal="true">
+    {#if pagina === 'metodologia'}<Metodologia onCerrar={() => cerrarPagina()} />{:else if pagina === 'glosario'}<Glosario onCerrar={() => cerrarPagina()} />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
+  </div>
+{/if}
 
 <style>
   /* La .interface global es pointer-events: none; los slots reactivan los
@@ -277,13 +330,15 @@
     pointer-events: auto;
   }
 
-  .welcome {
-    max-width: 48ch;
-    margin: 0 auto 0 32px;
-    color: var(--muted);
-    font-size: 11px;
-    line-height: 1.5;
-  }
+  .menu-button { display: grid; gap: 4px; width: 36px; height: 32px; padding: 8px 7px; margin-left: auto; border: 1px solid var(--hairline); background: transparent; }
+  .menu-button span { display: block; width: 100%; height: 1px; background: var(--ink); }
+  .site-menu { position: absolute; top: 76px; right: 42px; z-index: 4; width: min(300px, calc(100vw - 48px)); padding: 18px; border: 1px solid var(--hairline); background: rgba(16, 27, 44, .98); box-shadow: 0 18px 40px rgba(0,0,0,.3); pointer-events: auto; }
+  .site-menu nav { display: grid; gap: 15px; font: 12px var(--mono); }
+  .site-menu nav a { color: var(--ink); }
+  .site-menu nav a:hover, .help-links a:hover { color: var(--amber); }
+  .site-menu .about-button { margin-top: 20px; }
+  .help-links { display: flex; gap: 16px; margin-top: 16px; font: 10px var(--mono); color: var(--amber); }
+  .site-menu .about-panel { position: static; width: auto; margin: 18px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--hairline); background: transparent; box-shadow: none; }
 
   .stage {
     grid-area: stage;
@@ -316,12 +371,15 @@
   .timeline-slot {
     pointer-events: auto;
   }
+  .timeline-slot { display: grid; gap: 10px; align-items: end; }
+  .legend-slot { pointer-events: auto; }
+  .page-layer { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--bg); pointer-events: auto; }
 
   /* Columna única: panel debajo del masthead, línea de tiempo al final. */
   @media (max-width: 899px) {
     .interface {
       grid-template-columns: 1fr;
-      grid-template-rows: auto minmax(180px, 1fr) auto auto;
+      grid-template-rows: auto minmax(260px, 1fr) auto auto;
       grid-template-areas:
         'masthead'
         'stage'
@@ -331,8 +389,9 @@
     }
 
     .stage {
+      position: relative;
       justify-content: flex-end;
-      padding-top: 18px;
+      padding: 18px 0 10px;
     }
 
     .rail {
@@ -352,15 +411,43 @@
       gap: 4px;
       padding-bottom: 4px;
     }
+    .site-menu { right: 24px; }
   }
 
   @media (max-width: 650px) {
-    .welcome {
-      display: none;
-    }
+    .site-menu { top: 64px; right: 17px; width: min(300px, calc(100vw - 34px)); }
 
     .stage {
-      padding-top: 15px;
+      min-height: 285px;
+      padding: 15px 0 8px;
+    }
+
+    /* Los controles quedan juntos en el borde inferior del espacio del globo,
+       en vez de crecer entre el masthead y el panel de análisis. */
+    .timeline-slot {
+      position: absolute;
+      right: 0;
+      bottom: 8px;
+      left: 0;
+      width: min(100%, 360px);
+      margin: 0 auto;
+      gap: 6px;
+    }
+
+    .legend-slot {
+      position: absolute;
+      top: 8px;
+      right: 0;
+      left: 0;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    :global(.timeline-slot .timeline) {
+      background: rgba(11, 18, 32, .48);
+      border-color: rgba(237, 243, 250, .2);
+      box-shadow: 0 -12px 30px rgba(5, 8, 15, .18);
     }
   }
 </style>
