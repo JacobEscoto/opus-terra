@@ -1,26 +1,41 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { EarthScene, type EarthTelemetry } from '../three/earthScene'
-  import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
+  import { onMount } from "svelte";
+  import { EarthScene, type EarthTelemetry } from "../three/earthScene";
+  import {
+    agregarCapa,
+    actualizarColores,
+    quitarCapa,
+    type CeldaTendencia,
+  } from "../three/tendenciaLayer";
+  import {
+    agregarEtiquetas,
+    quitarEtiquetas,
+    type EtiquetaGlobo,
+  } from "../three/etiquetasLayer";
 
-  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>
+  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
 
   interface Props {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
-    onTelemetry?: (telemetry: EarthTelemetry | null) => void
+    onTelemetry?: (telemetry: EarthTelemetry | null) => void;
     /** Texture download progress, 0 → 1. */
-    onProgress?: (ratio: number) => void
-    onReady?: (focusOn: FocusOn, cancelFocus: () => void, setAutoRotate: (enabled: boolean) => void) => void
-    onInteraction?: () => void
+    onProgress?: (ratio: number) => void;
+    onReady?: (
+      focusOn: FocusOn,
+      cancelFocus: () => void,
+      setAutoRotate: (enabled: boolean) => void,
+    ) => void;
+    onInteraction?: () => void;
     /** How far off-centre the planet sits, as a fraction of the canvas width. */
-    horizontalOffset?: number
+    horizontalOffset?: number;
     /** Keeps the whole globe readable when a data layer is active. */
-    dataMode?: boolean
-  celdas?: CeldaTendencia[]
-  capaVisible?: boolean
-  anio?: number
-  anios?: number[]
-  escalaMaxima?: number
+    dataMode?: boolean;
+    celdas?: CeldaTendencia[];
+    capaVisible?: boolean;
+    anio?: number;
+    anios?: number[];
+    escalaMaxima?: number;
+    etiquetas?: EtiquetaGlobo[];
   }
 
   let {
@@ -35,23 +50,27 @@
     anio = 0,
     anios = [],
     escalaMaxima = 1,
-  }: Props = $props()
+    etiquetas = [],
+  }: Props = $props();
 
-  let canvas: HTMLCanvasElement
-  let status = $state<'loading' | 'ready' | 'error'>('loading')
-  let sceneRef: EarthScene | null = null
+  let canvas: HTMLCanvasElement;
+  let status = $state<"loading" | "ready" | "error">("loading");
+  let sceneRef: EarthScene | null = null;
 
   function actualizarCapa() {
-    const scene = sceneRef
+    const scene = sceneRef;
     if (!scene || !capaVisible) {
-      quitarCapa()
-      return
+      quitarCapa();
+      return;
     }
     try {
-      agregarCapa(scene.getOverlayRoot(), celdas, anios, escalaMaxima)
+      agregarCapa(scene.getOverlayRoot(), celdas, anios, escalaMaxima);
     } catch (error: unknown) {
-      console.error('[tendenciaLayer] No se pudieron crear los marcadores.', error)
-      quitarCapa()
+      console.error(
+        "[tendenciaLayer] No se pudieron crear los marcadores.",
+        error,
+      );
+      quitarCapa();
     }
   }
 
@@ -63,51 +82,59 @@
       onInteraction,
       horizontalOffset,
       dataMode,
-    })
-    sceneRef = scene
-    actualizarCapa()
+    });
+    sceneRef = scene;
+    actualizarCapa();
 
     scene
       .load()
       .then(() => {
-        status = 'ready'
-        onReady?.(scene.focusOn.bind(scene), scene.cancelFocus.bind(scene), scene.setAutoRotate.bind(scene))
+        status = "ready";
+        onReady?.(
+          scene.focusOn.bind(scene),
+          scene.cancelFocus.bind(scene),
+          scene.setAutoRotate.bind(scene),
+        );
       })
       .catch((error: unknown) => {
-        console.error(error)
-        status = 'error'
-      })
+        console.error(error);
+        status = "error";
+      });
 
     return () => {
-      sceneRef = null
-      quitarCapa()
-      scene.dispose()
-    }
-  })
+      sceneRef = null;
+      quitarCapa();
+      quitarEtiquetas();
+      scene.dispose();
+    };
+  });
 
   $effect(() => {
-    sceneRef?.setHorizontalOffset(horizontalOffset)
-    sceneRef?.setDataMode(dataMode)
-  })
+    sceneRef?.setHorizontalOffset(horizontalOffset);
+    sceneRef?.setDataMode(dataMode);
+  });
 
   $effect(() => {
-    actualizarCapa()
-  })
+    actualizarCapa();
+  });
 
   $effect(() => {
-    const anioActivo = anio
-    if (sceneRef && capaVisible) actualizarColores(anioActivo)
-  })
+    const anioActivo = anio;
+    if (sceneRef && capaVisible) actualizarColores(anioActivo);
+  });
 </script>
 
 <div class="globe">
-  <canvas bind:this={canvas} aria-label="Globo terráqueo 3D del planeta Tierra"></canvas>
+  <canvas bind:this={canvas} aria-label="Globo terráqueo 3D del planeta Tierra"
+  ></canvas>
 
-  {#if status !== 'ready'}
+  {#if status !== "ready"}
     <div class="boot" role="status" aria-live="polite">
       <div class="boot__rule"><span></span></div>
       <p class="boot__label">
-        {status === 'error' ? 'No se pudieron preparar los datos del planeta' : 'Preparando el planeta…'}
+        {status === "error"
+          ? "No se pudieron preparar los datos del planeta"
+          : "Preparando el planeta…"}
       </p>
     </div>
   {/if}
