@@ -6,6 +6,7 @@
   import {
     cargarVariable,
     cargarRegiones,
+    cargarPaises,
     CATALOGO,
     type EstadoCarga,
     type RegionDisponible,
@@ -16,6 +17,8 @@
     nombreCorto,
   } from "./lib/data/capa";
   import type { ParRegiones } from "./lib/types/analysis";
+  import type { EtiquetaGlobo } from "./lib/three/etiquetasLayer";
+  import { registrarEtiquetas } from "./lib/three/etiquetasLayer";
   import GlobeLegend from "./lib/components/GlobeLegend.svelte";
   import Glosario from "./lib/components/paginas/Glosario.svelte";
   import AcercaDe from "./lib/components/paginas/AcercaDe.svelte";
@@ -29,6 +32,7 @@
   let variablesCargadas = $state<string[]>([]);
   let regiones = $state<RegionDisponible[]>([]);
   let regionActiva = $state("honduras");
+  let paises = $state<EtiquetaGlobo[]>([]);
 
   const regionActual = $derived(
     regiones.find((region) => region.id == regionActiva) ?? null,
@@ -85,15 +89,21 @@
       : null,
   );
 
-  const etiquetasGlobo = $derived(
-    parSeleccionado
+  const etiquetasGlobo = $derived([
+    ...paises,
+    ...(parSeleccionado
       ? [parSeleccionado.region_a, parSeleccionado.region_b].map((region) => ({
           texto: nombreCorto(region),
           lat: region.lat,
           lon: region.lon,
+          tipo: "lugar" as const,
         }))
-      : [],
-  );
+      : []),
+  ]);
+
+  $effect(() => {
+    registrarEtiquetas(etiquetasGlobo);
+  });
 
   function centroDe(id: string): { lat: number; lon: number } {
     const region = regiones.find((item) => item.id == id);
@@ -237,6 +247,10 @@
     idSeleccionado = null;
     enfoqueInicialHecho = false;
     variablesCargadas = [];
+    const numeroRegion = ++solicitud;
+    const paisesCargados = await cargarPaises(id);
+    if (numeroRegion !== solicitud || id !== regionActiva) return;
+    paises = paisesCargados;
 
     const permitidas =
       regiones.find((region) => region.id === id)?.variables ?? [];
@@ -248,6 +262,10 @@
 
   function cargar() {
     void cambiarVariable(variableActiva);
+    const numeroRegion = solicitud;
+    void cargarPaises(regionActiva).then((cargados) => {
+      if (numeroRegion === solicitud) paises = cargados;
+    });
   }
 
   onMount(() => {
@@ -296,7 +314,7 @@
 <EarthGlobe
   horizontalOffset={desplazamiento}
   dataMode={parSeleccionado !== null}
-  celdas={preparacion?.celdas ?? []}
+  celdas={preparacion?.celdasCapa ?? []}
   capaVisible={capaTendenciaVisible}
   {anio}
   anios={datos?.periodo.anios_completos ?? []}

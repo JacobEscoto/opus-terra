@@ -32,7 +32,7 @@
   details[open] summary::before { content: '−'; }
   summary span { color: var(--amber); }
   .globe-legend__body { display: grid; gap: 6px; padding-top: 10px; }
-  .globe-legend__bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #d9d4c8, #d99435); box-shadow: inset 0 0 0 1px rgba(243, 247, 252, .12); }
+   .globe-legend__bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #3988c2, #d9d4c8 50%, #d99435); box-shadow: inset 0 0 0 1px rgba(243, 247, 252, .12); }
   .globe-legend__labels { display: flex; justify-content: space-between; gap: 12px; font: 9px/1.3 var(--mono); color: var(--faint); }
   p { color: var(--muted); font-size: 11px; line-height: 1.45; }
   @media (max-width: 650px) {

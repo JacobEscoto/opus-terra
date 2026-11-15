@@ -1,0 +1,14 @@
+[
+  {
+    "nombre": "El Salvador",
+    "iso": "SV",
+    "lat": 13.685,
+    "lon": -88.89
+  },
+  {
+    "nombre": "Honduras",
+    "iso": "HN",
+    "lat": 14.795,
+    "lon": -86.888
+  }
+]
