@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import math
 from functools import lru_cache
 from pathlib import Path
-
-from opusterra.lugares import _distancia_haversine
 
 RUTA_PAISES = (
     Path(__file__).resolve().parents[3]
@@ -13,7 +12,20 @@ RUTA_PAISES = (
     / "ne_10m_admin_0_countries.shp"
 )
 
-RADIO_CIUDAD_KM = 25.0
+RADIO_CIUDAD_KM = 60.0
+
+
+def _distancia_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    radio_tierra_km = 6371.0088
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_lat / 2.0) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2.0) ** 2
+    )
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return radio_tierra_km * c
 
 
 @lru_cache(maxsize=1)
@@ -69,22 +81,22 @@ def ubicacion(lat: float, lon: float, radio_km: float = RADIO_CIUDAD_KM) -> dict
     cerca = distancia <= radio_km
 
     pais = pais_de(lat, lon)
-    if pais is None and _paises() is None:
+    if pais is None:
         pais = _nombre_pais(cercano["cc"])
 
     return {
         "ciudad": (cercano["name"] or None) if cerca else None,
-        "departamento": (cercano["admin1"] or None) if cerca else None,
+        "departamento": cercano["admin1"] or None,
         "pais": pais,
     }
 
 
 def etiqueta(datos: dict) -> str:
-    """Texto legible: «Cerca de Danlí, El Paraíso, Honduras»."""
+    """Texto legible: «Cerca de Danlí, El Paraíso, Honduras» o «Departamento, País»."""
 
     ciudad = datos.get("ciudad")
     partes = [datos.get("departamento"), datos.get("pais")]
     if ciudad:
         partes.insert(0, f"Cerca de {ciudad}")
     texto = ", ".join(parte for parte in partes if parte)
-    return texto or "Zona sin nombre de lugar"
+    return texto

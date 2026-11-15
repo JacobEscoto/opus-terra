@@ -14,16 +14,15 @@ import pandas as pd
 import xarray as xr
 
 from opusterra import mod13c2
-from opusterra.config import PERIODO_COMUN
+from opusterra.config import PERIODO_COMUN, gpm_mm_h_a_mm_mes
 from opusterra.enso import cargar_oni, remover_enso
 from opusterra.geocodificacion import etiqueta, ubicacion
-from opusterra.lugares import cargar_lugares, nombrar_punto
+import opusterra.merra2
 from opusterra.tendencia import fdr_benjamini_hochberg, mann_kendall, pendiente_sen
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "frontend" / "public" / "data"
 DATASETS = ROOT / "backend" / "config" / "datasets.toml"
-LUGARES = ROOT / "backend" / "config" / "lugares_honduras.csv"
 INICIO = pd.Period(PERIODO_COMUN[0], freq="M")
 FIN = pd.Period(PERIODO_COMUN[1], freq="M")
 ALFA = 0.05
@@ -109,9 +108,7 @@ def _base(
     return resultado
 
 
-def _crear_pares(
-    registros: list[dict], lugares: list[dict] | None = None
-) -> list[dict]:
+def _crear_pares(registros: list[dict]) -> list[dict]:
     crecientes = [
         r for r in registros if r["significativa_fdr"] and r["direccion"] == "creciente"
     ]
@@ -126,14 +123,8 @@ def _crear_pares(
     ):
 
         def region(registro: dict, tendencia: str) -> dict:
-            if lugares is None:
-                lugar = ubicacion(registro["lat"], registro["lon"])
-                nombre = etiqueta(lugar)
-                extra = {"pais": lugar["pais"], "ciudad": lugar["ciudad"]}
-            else:
-                # Camino anterior, por si una prueba pasa un catálogo propio.
-                nombre = nombrar_punto(registro["lat"], registro["lon"], lugares)
-                extra = {}
+            lugar = ubicacion(registro["lat"], registro["lon"])
+            nombre = etiqueta(lugar)
             return {
                 "nombre": nombre,
                 "lat": registro["lat"],
@@ -142,7 +133,8 @@ def _crear_pares(
                 "cambio_porcentual": registro["cambio_porcentual"],
                 "significativa": True,
                 "explicacion": "La tendencia anual supera el umbral FDR de Benjamini-Hochberg.",
-                **extra,
+                "pais": lugar["pais"],
+                "ciudad": lugar["ciudad"],
             }
 
         pares.append(
@@ -173,7 +165,12 @@ def _serializar_resultado(contenido: dict) -> str:
 
 
 def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
-    rutas = sorted((raw / "merra2_slv").glob("*.nc"))
+    directorio = raw / "merra2_slv"
+    if not directorio.is_dir():
+        raise FileNotFoundError(f"No existe el directorio de MERRA-2 T2M en {directorio}")
+    rutas = sorted(directorio.glob("*.nc"))
+    if not rutas:
+        raise FileNotFoundError(f"No se encontraron archivos .nc en {directorio}")
     por_mes: dict[pd.Period, Path] = {}
     for ruta in rutas:
         coincidencia = re.search(r"\.(\d{6})(?:_[^.]+)?\.nc$", ruta.name)
@@ -201,7 +198,12 @@ def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
 
 
 def _cargar_malla_aer(raw: Path) -> xr.DataArray:
-    rutas = sorted((raw / "merra2_aer").glob("*.nc"))
+    directorio = raw / "merra2_aer"
+    if not directorio.is_dir():
+        raise FileNotFoundError(f"No existe el directorio de MERRA-2 AER en {directorio}")
+    rutas = sorted(directorio.glob("*.nc"))
+    if not rutas:
+        raise FileNotFoundError(f"No se encontraron archivos .nc en {directorio}")
     por_mes: dict[pd.Period, Path] = {}
     for ruta in rutas:
         coincidencia = re.search(r"\.(\d{6})(?:_[^.]+)?\.nc$", ruta.name)
@@ -343,8 +345,14 @@ def _analizar_malla_mod13c2(raw: Path, region: Region) -> dict:
     La única diferencia es el paso previo de control de calidad: el NDVI solo
     entra al pipeline en las celda-mes que MOD13C2 marca como confiables.
     """
+    directorio = raw / "mod13c2"
+    if not directorio.is_dir():
+        raise FileNotFoundError(f"No existe el directorio de MOD13C2 en {directorio}")
+    rutas = sorted(directorio.glob("*.nc"))
+    if not rutas:
+        raise FileNotFoundError(f"No se encontraron archivos de MOD13C2 en {directorio}")
 
-    cubo = mod13c2.cargar_cubo(raw / "mod13c2", INICIO, FIN)
+    cubo = mod13c2.cargar_cubo(directorio, INICIO, FIN)
     mascara, conteos = mod13c2.mascara_confiable(cubo)
     ndvi = mod13c2.ndvi_mascarado(cubo, mascara)
     resumen = mod13c2.resumen_calidad(
@@ -366,90 +374,88 @@ def _analizar_malla_mod13c2(raw: Path, region: Region) -> dict:
     )
 
 
-def _sin_malla_precipitacion(
-    ruta: Path, variable: str, nombre: str, fuente: str, unidad: str, region: Region
-) -> dict:
-    with xr.open_dataset(ruta, decode_times=True) as dataset:
-        if variable == "imerg_precipitacion":
-            latitud = dataset.sizes.get("lat")
-            longitud = dataset.sizes.get("lon")
-            print(f"IMERG: {ruta.resolve()}")
-            print(f"IMERG dimensiones lat/lon: {latitud}x{longitud}")
-            if (latitud, longitud) == (1800, 3600):
-                raise ValueError(
-                    f"IMERG en {ruta} es un mapa global (lon=3600, lat=1800); "
-                    "se detiene para no promediar el mundo como si fuera la región."
-                )
-        inicio = int(str(dataset.time.values[0])[:4])
-        fin = int(str(dataset.time.values[-1])[:4])
-    resultado = _base(
-        fuente,
-        variable,
-        nombre,
-        unidad,
-        (INICIO.year, FIN.year),
-        region,
-        limitacion=(
-            "El insumo disponible es una serie area-promedio sin dimensiones lat/lon; "
-            "no se fabricaron píxeles ni pruebas de significancia."
-        ),
-    )
-    resultado["fuente_periodo_disponible"] = {"inicio": inicio, "fin": fin}
-    resultado["periodo"]["mes_inicio"] = str(INICIO)
-    resultado["periodo"]["mes_fin"] = str(FIN)
-    resultado["periodo"]["meses"] = 308
-    resultado["periodo"]["anios_completos"] = []
-    resultado["fdr"]["estado"] = "no_aplicable_sin_malla"
-    return resultado
-
-
-def _buscar_precipitacion(
-    raw: Path,
-    patron: str,
-    *,
-    subdirectorio: str | None = None,
-    variable: str | None = None,
-) -> Path:
-    if subdirectorio is None:
-        if patron == "*tavgM_2d_flx*.nc":
-            subdirectorio = "merra2_flx"
-        elif patron == "3B-MO*.nc":
-            subdirectorio = "gpm_imerg"
-        else:
-            subdirectorio = "precipitation"
-    directorio = raw / subdirectorio
-    rutas = sorted(directorio.glob(patron))
+def _cargar_malla_merra2_precipitacion(raw: Path) -> xr.DataArray:
+    directorio = raw / "merra2_flx"
+    if not directorio.is_dir():
+        raise FileNotFoundError(f"No existe el directorio de MERRA-2 FLX en {directorio}")
+    rutas = sorted(directorio.glob("*.nc"))
     if not rutas:
-        raise FileNotFoundError(
-            f"No se encontraron archivos de precipitación con el patrón {patron} en {directorio}."
-        )
-
-    meses = set()
+        raise FileNotFoundError(f"No se encontraron archivos de MERRA-2 FLX en {directorio}")
+    por_mes: dict[pd.Period, Path] = {}
     for ruta in rutas:
-        coincidencias = re.findall(
-            r"(?<!\d)(20\d{2})(\d{2})(?:\d{2})?(?!\d)", ruta.name
-        )
-        for anio, mes in coincidencias:
-            periodo = pd.Period(f"{anio}-{mes}", freq="M")
-            if INICIO <= periodo <= FIN:
-                meses.add(periodo)
-                break
-    if len(meses) != 308:
+        coincidencia = re.search(r"\.(\d{6})(?:_[^.]+)?\.nc$", ruta.name)
+        if not coincidencia:
+            continue
+        mes = pd.Period(coincidencia.group(1), freq="M")
+        if INICIO <= mes <= FIN:
+            anterior = por_mes.get(mes)
+            if (
+                anterior is None
+                or ruta.name.split(".")[0] > anterior.name.split(".")[0]
+            ):
+                por_mes[mes] = ruta
+    esperados = pd.period_range(INICIO, FIN, freq="M")
+    faltantes = [str(mes) for mes in esperados if mes not in por_mes]
+    if faltantes:
         raise RuntimeError(
-            f"Precipitación en {directorio}: se encontraron {len(meses)} meses dentro de "
-            f"{INICIO} a {FIN}; se requieren 308."
+            f"Faltan meses MERRA-2 FLX en la ventana efectiva: {', '.join(faltantes)}"
         )
+    partes = []
+    for mes in esperados:
+        with xr.open_dataset(por_mes[mes]) as dataset:
+            if "PRECTOTCORR" not in dataset.variables:
+                raise ValueError(f"No se encontró PRECTOTCORR en {por_mes[mes].name}")
+            partes.append(dataset["PRECTOTCORR"].load())
+    da = xr.concat(partes, dim="time").assign_coords(time=esperados.to_timestamp())
+    return opusterra.merra2.precipitacion.mm_mes(da)
 
-    if variable is not None:
-        for ruta in rutas:
-            with xr.open_dataset(ruta) as dataset:
-                if variable not in dataset.variables:
-                    raise ValueError(f"No se encontró {variable} en {ruta.resolve()}")
 
-    print(f"Precipitación: {directorio.resolve()}")
-    print(f"Primer archivo: {rutas[0].resolve()}")
-    print(f"Archivos encontrados: {len(rutas)}")
-    return rutas[0]
+def _cargar_malla_imerg_precipitacion(raw: Path, region: Region) -> xr.DataArray:
+    directorio = raw / "gpm_imerg"
+    if not directorio.is_dir():
+        if region.id == "honduras" and (ROOT / "data" / "raw" / "gpm_imerg").is_dir():
+            directorio = ROOT / "data" / "raw" / "gpm_imerg"
+        else:
+            raise FileNotFoundError(f"No existe el directorio de GPM IMERG en {directorio}")
+    rutas = sorted(directorio.glob("3B-MO*.nc"))
+    if not rutas:
+        raise FileNotFoundError(f"No se encontraron archivos de GPM IMERG en {directorio}")
+    por_mes: dict[pd.Period, Path] = {}
+    for ruta in rutas:
+        coincidencia = re.search(r"\.(\d{4})(\d{2})\d{2}-", ruta.name)
+        if not coincidencia:
+            continue
+        mes = pd.Period(f"{coincidencia.group(1)}-{coincidencia.group(2)}", freq="M")
+        if INICIO <= mes <= FIN:
+            por_mes[mes] = ruta
+    esperados = pd.period_range(INICIO, FIN, freq="M")
+    faltantes = [str(mes) for mes in esperados if mes not in por_mes]
+    if faltantes:
+        raise RuntimeError(
+            f"Faltan meses GPM IMERG en la ventana efectiva: {', '.join(faltantes)}"
+        )
+    partes = []
+    for mes in esperados:
+        with xr.open_dataset(por_mes[mes]) as dataset:
+            if "precipitation" not in dataset.variables:
+                raise ValueError(f"No se encontró precipitation en {por_mes[mes].name}")
+            p = dataset["precipitation"].load()
+            unidad = p.attrs.get("units")
+            if unidad != "mm/hr":
+                raise ValueError(
+                    f"Unidad inesperada en {por_mes[mes].name}: se esperaba 'mm/hr', pero se encontró '{unidad}'"
+                )
+            conv = gpm_mm_h_a_mm_mes(p.values, mes.year, mes.month)
+            p_mes = p.copy(data=conv)
+            p_mes.attrs["units"] = "mm/mes"
+            p_mes.attrs["units_original"] = unidad
+            p_mes.attrs["conversion"] = "opusterra.config.gpm_mm_h_a_mm_mes: mm/hr -> mm/mes"
+            partes.append(p_mes)
+    return (
+        xr.concat(partes, dim="time")
+        .assign_coords(time=esperados.to_timestamp())
+        .transpose("time", "lat", "lon")
+    )
 
 
 def _actualizar_regiones(region: Region, variables: list[str]) -> None:
@@ -495,59 +501,89 @@ def main() -> None:
     raw = ROOT / "data" / "raw" / region.id
     output = OUTPUT / region.id
     output.mkdir(parents=True, exist_ok=True)
-    t2m = _analizar_malla(
-        _cargar_malla_t2m(raw),
-        ("merra2_t2m", "Temperatura del aire a 2 m"),
-        "degC",
-        "NASA MERRA-2 M2TMNXSLV v5.12.4",
-        region=region,
-    )
-    precipitacion_merra = _sin_malla_precipitacion(
-        _buscar_precipitacion(
-            raw,
-            "*tavgM_2d_flx*.nc",
-            variable="PRECTOTCORR",
-        ),
+
+    cuatro_variables = [
+        "merra2_t2m",
         "merra2_precipitacion",
-        "Precipitación MERRA-2 PRECTOTCORR",
-        "NASA MERRA-2 M2TMNXFLX v5.12.4",
-        "kg m-2 s-1",
-        region,
-    )
-    imerg = _sin_malla_precipitacion(
-        _buscar_precipitacion(ROOT / "data" / "raw", "3B-MO*.nc"),
         "imerg_precipitacion",
-        "Precipitación GPM IMERG",
-        "NASA GPM IMERG v07",
-        "mm/hr",
-        region,
-    )
-    ndvi = _analizar_malla_mod13c2(raw, region)
-    aerosoles = _analizar_malla(
-        _cargar_malla_aer(raw),
-        ("merra2_aer", "Partículas en suspensión PM2.5 en superficie"),
-        "µg/m³",
-        "NASA MERRA-2 M2TMNXAER v5.12.4 (DUSMASS25)",
-        region=region,
-        contexto="Partículas en suspensión estimadas por el modelo MERRA-2; no es una medición de salud",
-    )
-    _actualizar_regiones(
-        region,
-        [
+        "mod13c2_ndvi",
+    ]
+
+    tareas = [
+        (
             "merra2_t2m",
+            "merra2_t2m.json",
+            lambda: _analizar_malla(
+                _cargar_malla_t2m(raw),
+                ("merra2_t2m", "Temperatura del aire a 2 m"),
+                "degC",
+                "NASA MERRA-2 M2TMNXSLV v5.12.4",
+                region=region,
+            ),
+        ),
+        (
             "merra2_precipitacion",
+            "merra2_precipitacion.json",
+            lambda: _analizar_malla(
+                _cargar_malla_merra2_precipitacion(raw),
+                ("merra2_precipitacion", "Precipitación MERRA-2 PRECTOTCORR"),
+                "mm/mes",
+                "NASA MERRA-2 M2TMNXFLX v5.12.4",
+                region=region,
+            ),
+        ),
+        (
             "imerg_precipitacion",
+            "imerg_precipitacion.json",
+            lambda: _analizar_malla(
+                _cargar_malla_imerg_precipitacion(raw, region),
+                ("imerg_precipitacion", "Precipitación GPM IMERG"),
+                "mm/mes",
+                "NASA GPM IMERG v07",
+                region=region,
+            ),
+        ),
+        (
             "mod13c2_ndvi",
+            "mod13c2_ndvi.json",
+            lambda: _analizar_malla_mod13c2(raw, region),
+        ),
+        (
             "merra2_aer",
-        ],
-    )
-    for nombre, contenido in (
-        ("merra2_t2m.json", t2m),
-        ("merra2_precipitacion.json", precipitacion_merra),
-        ("imerg_precipitacion.json", imerg),
-        ("mod13c2_ndvi.json", ndvi),
-        ("merra2_aer.json", aerosoles),
-    ):
+            "merra2_aer.json",
+            lambda: _analizar_malla(
+                _cargar_malla_aer(raw),
+                ("merra2_aer", "Partículas en suspensión PM2.5 en superficie"),
+                "µg/m³",
+                "NASA MERRA-2 M2TMNXAER v5.12.4 (DUSMASS25)",
+                region=region,
+                contexto="Partículas en suspensión estimadas por el modelo MERRA-2; no es una medición de salud",
+            ),
+        ),
+    ]
+
+    generados: list[tuple[str, str, dict]] = []
+    fallos: dict[str, str] = {}
+
+    for var_id, nombre, generador in tareas:
+        try:
+            contenido = generador()
+            generados.append((var_id, nombre, contenido))
+        except (FileNotFoundError, RuntimeError, ValueError) as err:
+            print(
+                f"Aviso: Insumo no disponible o incompleto para {var_id} en {region.nombre} ({err}). Se omite esta variable."
+            )
+            fallos[var_id] = str(err)
+        except Exception as err:
+            print(
+                f"Aviso: Error inesperado al procesar {var_id} en {region.nombre} ({err}). Se omite esta variable."
+            )
+            fallos[var_id] = str(err)
+
+    variables_generadas = [var_id for var_id, _, _ in generados]
+    _actualizar_regiones(region, variables_generadas)
+
+    for var_id, nombre, contenido in generados:
         ruta_salida = output / nombre
         tamano_anterior = ruta_salida.stat().st_size if ruta_salida.exists() else 0
         contenido_exportado = contenido
@@ -574,6 +610,16 @@ def main() -> None:
         print(
             f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR"
         )
+
+    if region.id == "honduras":
+        faltantes = [v for v in cuatro_variables if v not in variables_generadas]
+        if faltantes:
+            for f in faltantes:
+                print(
+                    f"FALLO HONDURAS: Variable {f} no se pudo generar. Motivo: {fallos.get(f, 'Desconocido')}"
+                )
+        else:
+            print("Honduras: Las cuatro variables se generaron exitosamente.")
 
 
 if __name__ == "__main__":

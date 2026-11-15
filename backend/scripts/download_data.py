@@ -127,20 +127,19 @@ def mostrar_busqueda(
     """Muestra el resultado de búsqueda y su cobertura efectiva."""
 
     nombres = [nombre_remoto(g) for g in granules]
-    total_gb = len(granules) * producto["estimated_file_size_mb"] / 1000
     print(f"Archivos encontrados: {len(granules)}")
-    print(f"Tamaño estimado: {total_gb:.2f} GB")
     print(f"Formato nativo detectado: {formato_salida(Path(nombres[0]))}")
     print(f"Cobertura efectiva: {inicio} a {fin}")
     print(f"Primer archivo: {nombres[0]}")
     print(f"Último archivo: {nombres[-1]}")
     if usa_opendap:
-        total_mb_opendap = (
-            len(granules) * producto["estimated_opendap_kb_per_file"] / 1024
-        )
+        total_mb = len(granules) * producto["estimated_opendap_kb_per_file"] / 1024
         print(
-            f"Modo MERRA-2: OPeNDAP por variable y región ({mostrar_tamano_mb(total_mb_opendap)} estimados)"
+            f"Tamaño OPeNDAP estimado: {mostrar_tamano_mb(total_mb)} (recorte regional)"
         )
+    else:
+        total_gb = len(granules) * producto["estimated_file_size_mb"] / 1000
+        print(f"Tamaño estimado: {total_gb:.2f} GB")
 
 
 def guardar_encoding(dataset: xr.Dataset) -> tuple[xr.Dataset, dict]:

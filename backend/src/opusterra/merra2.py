@@ -179,8 +179,24 @@ def cargar_merra2(carpeta: Path, variables: Iterable[str] | str) -> xr.Dataset:
     return resultado[list(solicitados)]
 
 
-def precipitacion_mm_mes(ds: xr.Dataset) -> xr.Dataset:
+def precipitacion_mm_mes(ds: xr.Dataset | xr.DataArray) -> xr.Dataset | xr.DataArray:
     """Convierte `PRECTOTCORR` de kg m-2 s-1 a mm acumulados del mes real."""
+
+    if isinstance(ds, xr.DataArray):
+        if "time" not in ds.dims:
+            raise ValueError("El DataArray no tiene dimensión temporal 'time'")
+        dias = pd.DatetimeIndex(ds["time"].values).days_in_month
+        factor = xr.DataArray(
+            np.asarray(dias, dtype=float) * SEGUNDOS_POR_DIA,
+            dims="time",
+            coords={"time": ds["time"]},
+        )
+        convertida = ds * factor
+        convertida.attrs = dict(ds.attrs)
+        convertida.attrs["units"] = "mm/mes"
+        convertida.attrs["units_original"] = ds.attrs.get("units", "kg m-2 s-1")
+        convertida.attrs["conversion"] = "kg m-2 s-1 -> mm/mes (86400 s x dias reales del mes)"
+        return convertida
 
     nombre = NOMBRES_VARIABLES.merra2_precipitacion
     if nombre not in ds:
@@ -201,6 +217,13 @@ def precipitacion_mm_mes(ds: xr.Dataset) -> xr.Dataset:
     convertida.attrs["units_original"] = variable.attrs.get("units", "kg m-2 s-1")
     convertida.attrs["conversion"] = "kg m-2 s-1 -> mm/mes (86400 s x dias reales del mes)"
     return ds.assign(**{nombre: convertida})
+
+
+class _PrecipitacionNamespace:
+    mm_mes = staticmethod(precipitacion_mm_mes)
+
+
+precipitacion = _PrecipitacionNamespace()
 
 
 def t2m_celsius(ds: xr.Dataset) -> xr.Dataset:
