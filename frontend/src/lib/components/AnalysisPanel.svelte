@@ -2,7 +2,7 @@
   import type { EstadoCarga } from '../data/loadAnalysis'
   import type { VariableCatalogo } from '../data/loadAnalysis'
   import VariableSelector from './VariableSelector.svelte'
-  import type { PreparacionCapa } from '../data/capa'
+  import { aniosDelPeriodo, fraseResumen, unidadLegible, type PreparacionCapa } from '../data/capa'
   import type { AnalisisTendencias, ParRegiones } from '../types/analysis'
   import Legend from './Legend.svelte'
   import PairList from './PairList.svelte'
@@ -43,12 +43,31 @@
   let panelExpandido = $state(false)
 
   const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
+  const anios = $derived(datos ? aniosDelPeriodo(datos) : 0)
+
   function esPromedioDeArea(conjunto: AnalisisTendencias): boolean {
     return conjunto.pixeles_probados === 0 && conjunto.limitacion?.includes('area-promedio') === true
   }
 
   function celdasSignificativas(conjunto: AnalisisTendencias) {
     return conjunto.resultados_pixeles.filter((pixel) => pixel.significativa_fdr)
+  }
+
+  /** Signo de una pendiente: «+», «−» o nada cuando es cero. */
+  function signo(valor: number): string {
+    return valor > 0 ? '+' : valor < 0 ? '−' : ''
+  }
+
+  /** Pendiente anual en palabras: «+0.028 °C por año». */
+  function cambioPorAnio(pendiente: number): string {
+    const unidad = unidadLegible(datos?.unidad ?? '')
+    return `${signo(pendiente)}${Math.abs(pendiente).toFixed(3)} ${unidad} por año`
+  }
+
+  /** Acumulado del periodo: «≈ +0.68 °C en 24 años». */
+  function cambioAcumulado(pendiente: number, anios: number): string {
+    const unidad = unidadLegible(datos?.unidad ?? '')
+    return `≈ ${signo(pendiente)}${Math.abs(pendiente * anios).toFixed(2)} ${unidad} en ${anios} años`
   }
 </script>
 
@@ -63,10 +82,6 @@
       {/if}
     </div>
     <h2>{datos?.nombre_variable ?? '—'}</h2>
-    {#if datos}
-      <p class="panel__meta">
-        {datos.variable}<span class="slash">/</span>{datos.unidad}<span class="slash">/</span>{datos.periodo.inicio}–{datos.periodo.fin}
-      </p>    {/if}
     <button
       type="button"
       class="panel__toggle"
@@ -76,6 +91,15 @@
       <span>{panelExpandido ? 'Cerrar panel' : 'Abrir panel'}</span>
       <span aria-hidden="true">{panelExpandido ? '↓' : '↑'}</span>
     </button>
+    {#if datos}
+      <p class="panel__resumen">{fraseResumen(datos)}</p>
+      <details class="panel__detalles">
+        <summary>Ver detalles técnicos</summary>
+        <p class="panel__meta">
+          {datos.variable}<span class="slash">/</span>{datos.unidad}<span class="slash">/</span>{datos.periodo.inicio}–{datos.periodo.fin}
+        </p>
+      </details>
+    {/if}
   </header>
 
   <div class="panel__contenido">
@@ -120,12 +144,13 @@
       />
       <div class="capa-control">
         <div>
-          <strong class="capa-control__titulo">Marcadores {datos.variable === 'mod13c2_ndvi' ? 'NDVI' : datos.variable}</strong>
+          <strong class="capa-control__titulo">Marcadores de {datos.nombre_variable}</strong>
           <p class="capa-control__texto">
             {#if preparacion && preparacion.significativas > 0}
-              {datos.variable === 'mod13c2_ndvi'
-                ? `Tendencia de vegetación (NDVI) ${datos.periodo.inicio}–${datos.periodo.fin}, MODIS, ajustada por ENSO. ${datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas tras corrección FDR. Sin pares de contraste.`
-                : `Tendencia de ${datos.nombre_variable} ${datos.periodo.inicio}–${datos.periodo.fin}, ajustada por ENSO. ${datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas tras corrección FDR. Sin pares de contraste.`}
+              Tendencia de {datos.nombre_variable}, ajustada por ENSO.{' '}
+              {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} zonas donde el cambio es claro y no
+              parece casualidad.{' '}
+              {#if datos.pares.length === 0}No encontramos zonas con cambios opuestos.{/if}
             {:else}
               Sin celdas con tendencia significativa
             {/if}
@@ -142,23 +167,22 @@
               <p class="conjunto__fuente">{datos.fuente}</p>
               <h3 id={`titulo-${datos.variable}`}>{datos.nombre_variable}</h3>
             </div>
-            <span class="conjunto__periodo">{datos.periodo.inicio}–{datos.periodo.fin}</span>
           </div>
 
             {#if esPromedioDeArea(datos)}
             <div class="estado-datos estado-datos--area">
               <strong>Promedio de área: no hay análisis por píxel</strong>
-              <p>{datos.pixeles_probados} píxeles probados · {datos.pixeles_significativos_fdr} significativos</p>
+              <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas</p>
             </div>
             {:else if datos.pixeles_significativos_fdr === 0}
               <div class="estado-datos">
                 <strong>Sin celdas con tendencia significativa</strong>
-                <p>{datos.pixeles_probados} píxeles probados · 0 significativos tras FDR</p>
+                <p>zonas analizadas: {datos.pixeles_probados} · 0 significativas tras FDR</p>
               </div>
             {:else if datos.pares.length === 0}
               <div class="estado-datos">
                 <strong>Sin pares de tendencias opuestas significativas</strong>
-                <p>{datos.pixeles_probados} píxeles probados · {datos.pixeles_significativos_fdr} significativos tras FDR</p>
+                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas tras FDR</p>
               </div>
             {:else}
               <PairList
@@ -185,8 +209,11 @@
                {#each (preparacion?.celdas ?? celdasSignificativas(datos)) as pixel}
                 <div class="celda">
                   <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
-                  <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
-                     {pixel.sen_unidad_por_anio > 0 ? '+' : '−'}{Math.abs(pixel.sen_unidad_por_anio).toFixed(5)} {datos.variable === 'mod13c2_ndvi' ? 'NDVI/año' : '°C/año'}
+                  <span class="celda__valores">
+                    <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
+                      {cambioPorAnio(pixel.sen_unidad_por_anio)}
+                    </span>
+                    <span class="celda__acumulado">{cambioAcumulado(pixel.sen_unidad_por_anio, anios)}</span>
                   </span>
                 </div>
               {/each}
@@ -286,6 +313,33 @@
     color: var(--faint);
   }
 
+  /* Frase resumen: la primera lectura del panel, en lenguaje llano. */
+  .panel__resumen {
+    margin-top: 12px;
+    padding-left: 10px;
+    border-left: 2px solid var(--amber);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  /* Detalle técnico plegado: cerrado, el panel no muestra códigos. */
+  .panel__detalles {
+    margin-top: 10px;
+  }
+
+  .panel__detalles summary {
+    cursor: pointer;
+    font: 10px var(--mono);
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .panel__detalles summary:hover,
+  .panel__detalles summary:focus-visible {
+    color: var(--amber);
+  }
+
   .panel__cuerpo {
     display: grid;
     gap: 16px;
@@ -343,7 +397,6 @@
   }
 
   .conjunto__fuente,
-  .conjunto__periodo,
   .resolucion,
   .celda,
   .estado-datos p {
@@ -355,10 +408,6 @@
     margin-top: 3px;
     font-size: 14px;
     font-weight: 500;
-  }
-
-  .conjunto__periodo {
-    white-space: nowrap;
   }
 
   .estado-datos {
@@ -403,6 +452,14 @@
     gap: 12px;
     padding: 5px 0;
     border-bottom: 1px solid rgb(255 255 255 / 8%);
+  }
+
+  /* Cada zona: la pendiente y, debajo, el acumulado del periodo. */
+  .celda__valores {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+    text-align: right;
   }
 
   .celda--positiva {
@@ -521,9 +578,18 @@
       border-bottom: 0;
     }
 
-    .panel__fila,
-    .panel__meta {
+    .panel__fila {
       display: none;
+    }
+
+    .panel__resumen,
+    .panel__detalles {
+      grid-column: 1 / -1;
+    }
+
+    .panel__resumen {
+      margin-top: 10px;
+      font-size: 12px;
     }
 
     .panel__head h2 {

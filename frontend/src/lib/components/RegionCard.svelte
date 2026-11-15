@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { RegionAnalizada } from '../types/analysis'
+  import { unidadLegible } from '../data/capa'
   import TrendMark from './TrendMark.svelte'
 
   interface Props {
@@ -39,7 +40,7 @@
 
   <p class="region__cambio">
     <strong>{cambioFormateado(region.cambio_porcentual)}</strong>
-    <span>{unidad}</span>
+    <span>{unidadLegible(unidad)}</span>
   </p>
 
   {#if region.significativa}
