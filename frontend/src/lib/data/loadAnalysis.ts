@@ -12,180 +12,228 @@ import type {
   RegionAnalizada,
   ResultadoPixel,
   Tendencia,
-} from '../types/analysis'
+} from "../types/analysis";
 
 /** Variable disponible en el selector, con su JSON y su leyenda de capa. */
 export interface VariableCatalogo {
-  /** Identificador estable, el mismo que usa el campo `variable` del JSON. */
-  id: string
-  /** Etiqueta corta para el selector. */
-  etiqueta: string
-  /** Ruta del JSON dentro de `frontend/public/data/`. */
-  url: string
-  /** Tema de la variable, para la leyenda de la capa de marcadores. */
-  tema: string
-  /** Producto de origen abreviado, para la leyenda de la capa. */
-  producto: string
-  /** Unidad de la pendiente anual, para la lista de celdas del panel. */
-  unidadAnual: string
+  id: string;
+  etiqueta: string;
+  url: string;
+  tema: string;
+  producto: string;
+  unidadAnual: string;
 }
 
-export const REGION_ACTIVA = 'honduras'
+export const REGION_ACTIVA = "honduras";
+
+export interface RegionDisponible {
+  id: string;
+  nombre: string;
+  bbox: [number, number, number, number];
+  variables: string[];
+}
 
 /** Catálogo de variables que la interfaz puede representar. */
 export const CATALOGO: VariableCatalogo[] = [
   {
-    id: 'merra2_t2m',
-    etiqueta: 'Temperatura (T2M)',
+    id: "merra2_t2m",
+    etiqueta: "Temperatura (T2M)",
     url: `/data/${REGION_ACTIVA}/merra2_t2m.json`,
-    tema: 'temperatura',
-    producto: 'MERRA-2',
-    unidadAnual: '°C/año',
+    tema: "temperatura",
+    producto: "MERRA-2",
+    unidadAnual: "°C/año",
   },
   {
-    id: 'merra2_precipitacion',
-    etiqueta: 'Precipitación MERRA-2',
+    id: "merra2_precipitacion",
+    etiqueta: "Precipitación MERRA-2",
     url: `/data/${REGION_ACTIVA}/merra2_precipitacion.json`,
-    tema: 'precipitación modelada',
-    producto: 'MERRA-2',
-    unidadAnual: 'mm/año',
+    tema: "precipitación modelada",
+    producto: "MERRA-2",
+    unidadAnual: "mm/año",
   },
   {
-    id: 'imerg_precipitacion',
-    etiqueta: 'Precipitación IMERG',
+    id: "imerg_precipitacion",
+    etiqueta: "Precipitación IMERG",
     url: `/data/${REGION_ACTIVA}/imerg_precipitacion.json`,
-    tema: 'precipitación observada',
-    producto: 'GPM IMERG',
-    unidadAnual: 'mm/año',
+    tema: "precipitación observada",
+    producto: "GPM IMERG",
+    unidadAnual: "mm/año",
   },
   {
-    id: 'mod13c2_ndvi',
-    etiqueta: 'Vegetación (NDVI)',
+    id: "mod13c2_ndvi",
+    etiqueta: "Vegetación (NDVI)",
     url: `/data/${REGION_ACTIVA}/mod13c2_ndvi.json`,
-    tema: 'vegetación (NDVI)',
-    producto: 'MODIS',
-    unidadAnual: 'NDVI/año',
+    tema: "vegetación (NDVI)",
+    producto: "MODIS",
+    unidadAnual: "NDVI/año",
   },
-]
+];
 
 /** Estado de la carga de datos para toda la interfaz. */
 export type EstadoCarga =
-  | { estado: 'cargando' }
-  | { estado: 'error'; mensaje: string }
-  | { estado: 'listo'; datos: AnalisisTendencias }
+  | { estado: "cargando" }
+  | { estado: "error"; mensaje: string }
+  | { estado: "listo"; datos: AnalisisTendencias };
 
-const TENDENCIAS_VALIDAS: Tendencia[] = ['alza', 'bajada']
-
-const cache = new Map<string, AnalisisTendencias>()
+const cache = new Map<string, AnalisisTendencias>();
 
 function fallar(mensaje: string): never {
-  throw new Error(mensaje)
+  throw new Error(mensaje);
+}
+
+export async function cargarRegiones(): Promise<RegionDisponible[]> {
+  const respuesta = await fetch("/data/regiones.json");
+  if (!respuesta.ok) {
+    fallar(`No se pudo leer regiones.json (HTTP ${respuesta.status}).`);
+  }
+
+  const datos: unknown = await respuesta.json();
+  if (!Array.isArray(datos)) {
+    fallar("regiones.json debe contener una lista.");
+  }
+  return datos as RegionDisponible[];
 }
 
 /** Valida una región del contrato; devuelve un error claro si falta algo. */
 function validarRegion(valor: unknown, etiqueta: string): RegionAnalizada {
-  if (typeof valor !== 'object' || valor === null) {
-    fallar(`La región ${etiqueta} no es un objeto válido.`)
+  if (typeof valor !== "object" || valor === null) {
+    fallar(`La región ${etiqueta} no es un objeto válido.`);
   }
-  const region = valor as Record<string, unknown>
-  if (typeof region.nombre !== 'string' || region.nombre.length === 0) {
-    fallar(`La región ${etiqueta} no tiene un nombre válido.`)
+  const region = valor as Record<string, unknown>;
+  if (typeof region.nombre !== "string" || region.nombre.length === 0) {
+    fallar(`La región ${etiqueta} no tiene un nombre válido.`);
   }
-  if (typeof region.lat !== 'number' || typeof region.lon !== 'number') {
-    fallar(`La región ${etiqueta} no tiene coordenadas válidas.`)
+  if (typeof region.lat !== "number" || typeof region.lon !== "number") {
+    fallar(`La región ${etiqueta} no tiene coordenadas válidas.`);
   }
-  if (region.tendencia !== 'alza' && region.tendencia !== 'bajada') {
-    fallar(`La región ${etiqueta} tiene una tendencia desconocida.`)
+  if (region.tendencia !== "alza" && region.tendencia !== "bajada") {
+    fallar(`La región ${etiqueta} tiene una tendencia desconocida.`);
   }
-  if (typeof region.cambio_porcentual !== 'number') {
-    fallar(`La región ${etiqueta} no tiene un cambio porcentual válido.`)
+  if (typeof region.cambio_porcentual !== "number") {
+    fallar(`La región ${etiqueta} no tiene un cambio porcentual válido.`);
   }
-  if (typeof region.significativa !== 'boolean') {
-    fallar(`La región ${etiqueta} no declara si es significativa.`)
+  if (typeof region.significativa !== "boolean") {
+    fallar(`La región ${etiqueta} no declara si es significativa.`);
   }
-  if (typeof region.explicacion !== 'string' || region.explicacion.length === 0) {
-    fallar(`La región ${etiqueta} no tiene explicación.`)
+  if (
+    typeof region.explicacion !== "string" ||
+    region.explicacion.length === 0
+  ) {
+    fallar(`La región ${etiqueta} no tiene explicación.`);
   }
-  return region as unknown as RegionAnalizada
+  return region as unknown as RegionAnalizada;
 }
 
 /** Valida un par de regiones del contrato. */
 function validarPar(valor: unknown, indice: number): ParRegiones {
-  if (typeof valor !== 'object' || valor === null) {
-    fallar(`El par ${indice + 1} no es un objeto válido.`)
+  if (typeof valor !== "object" || valor === null) {
+    fallar(`El par ${indice + 1} no es un objeto válido.`);
   }
-  const par = valor as Record<string, unknown>
-  if (typeof par.id !== 'string' || par.id.length === 0) {
-    fallar(`El par ${indice + 1} no tiene identificador.`)
+  const par = valor as Record<string, unknown>;
+  if (typeof par.id !== "string" || par.id.length === 0) {
+    fallar(`El par ${indice + 1} no tiene identificador.`);
   }
   return {
     id: par.id,
     region_a: validarRegion(par.region_a, `A del par "${par.id}"`),
     region_b: validarRegion(par.region_b, `B del par "${par.id}"`),
-  }
+  };
 }
 
 /** Valida el resultado estadístico de una celda antes de mostrarlo. */
 function validarPixel(valor: unknown, indice: number): ResultadoPixel {
-  if (typeof valor !== 'object' || valor === null) {
-    fallar(`El resultado de celda ${indice + 1} no es un objeto válido.`)
+  if (typeof valor !== "object" || valor === null) {
+    fallar(`El resultado de celda ${indice + 1} no es un objeto válido.`);
   }
-  const pixel = valor as Record<string, unknown>
-  const numericos = ['lat', 'lon', 'mann_kendall_z', 'p_valor', 'sen_unidad_por_anio']
-  if (numericos.some((campo) => typeof pixel[campo] !== 'number' || !Number.isFinite(pixel[campo]))) {
-    fallar(`El resultado de celda ${indice + 1} tiene valores numéricos inválidos.`)
+  const pixel = valor as Record<string, unknown>;
+  const numericos = [
+    "lat",
+    "lon",
+    "mann_kendall_z",
+    "p_valor",
+    "sen_unidad_por_anio",
+  ];
+  if (
+    numericos.some(
+      (campo) =>
+        typeof pixel[campo] !== "number" || !Number.isFinite(pixel[campo]),
+    )
+  ) {
+    fallar(
+      `El resultado de celda ${indice + 1} tiene valores numéricos inválidos.`,
+    );
   }
   if (
     pixel.valores_anuales !== undefined &&
     (!Array.isArray(pixel.valores_anuales) ||
-      pixel.valores_anuales.some((valor) => typeof valor !== 'number' || !Number.isFinite(valor)))
+      pixel.valores_anuales.some(
+        (valor) => typeof valor !== "number" || !Number.isFinite(valor),
+      ))
   ) {
-    fallar(`El resultado de celda ${indice + 1} tiene valores anuales inválidos.`)
+    fallar(
+      `El resultado de celda ${indice + 1} tiene valores anuales inválidos.`,
+    );
   }
-  if (typeof pixel.direccion !== 'string' || typeof pixel.significativa_fdr !== 'boolean') {
-    fallar(`El resultado de celda ${indice + 1} está incompleto.`)
+  if (
+    typeof pixel.direccion !== "string" ||
+    typeof pixel.significativa_fdr !== "boolean"
+  ) {
+    fallar(`El resultado de celda ${indice + 1} está incompleto.`);
   }
-  return pixel as unknown as ResultadoPixel
+  return pixel as unknown as ResultadoPixel;
 }
 
 /** Verifica que la respuesta tenga la forma mínima del contrato acordado. */
 function validarAnalisis(datos: unknown): AnalisisTendencias {
-  if (typeof datos !== 'object' || datos === null) {
-    fallar('El JSON de análisis no es un objeto válido.')
+  if (typeof datos !== "object" || datos === null) {
+    fallar("El JSON de análisis no es un objeto válido.");
   }
-  const d = datos as Record<string, unknown>
-  if (typeof d.variable !== 'string' || typeof d.nombre_variable !== 'string' || typeof d.unidad !== 'string') {
-    fallar('El JSON de análisis no declara variable o unidad.')
+  const d = datos as Record<string, unknown>;
+  if (
+    typeof d.variable !== "string" ||
+    typeof d.nombre_variable !== "string" ||
+    typeof d.unidad !== "string"
+  ) {
+    fallar("El JSON de análisis no declara variable o unidad.");
   }
-  if (typeof d.region !== 'string' || d.region.length === 0) {
-    fallar('El JSON de análisis no declara un identificador de región válido.')
+  if (typeof d.region !== "string" || d.region.length === 0) {
+    fallar("El JSON de análisis no declara un identificador de región válido.");
   }
-  if (typeof d.region_nombre !== 'string' || d.region_nombre.length === 0) {
-    fallar('El JSON de análisis no declara un nombre de región válido.')
+  if (typeof d.region_nombre !== "string" || d.region_nombre.length === 0) {
+    fallar("El JSON de análisis no declara un nombre de región válido.");
   }
   if (
-    typeof d.periodo !== 'object' ||
+    typeof d.periodo !== "object" ||
     d.periodo === null ||
-    typeof (d.periodo as Record<string, unknown>).inicio !== 'number' ||
-    typeof (d.periodo as Record<string, unknown>).fin !== 'number'
+    typeof (d.periodo as Record<string, unknown>).inicio !== "number" ||
+    typeof (d.periodo as Record<string, unknown>).fin !== "number"
   ) {
-    fallar('El JSON de análisis no declara un periodo válido.')
+    fallar("El JSON de análisis no declara un periodo válido.");
   }
-  if (!Number.isInteger(d.pixeles_probados) || (d.pixeles_probados as number) < 0) {
-    fallar('El JSON de análisis no declara un número válido de celdas probadas.')
+  if (
+    !Number.isInteger(d.pixeles_probados) ||
+    (d.pixeles_probados as number) < 0
+  ) {
+    fallar(
+      "El JSON de análisis no declara un número válido de celdas probadas.",
+    );
   }
   if (
     !Number.isInteger(d.pixeles_significativos_fdr) ||
     (d.pixeles_significativos_fdr as number) < 0 ||
     (d.pixeles_significativos_fdr as number) > (d.pixeles_probados as number)
   ) {
-    fallar('El JSON de análisis no declara un número válido de celdas significativas.')
+    fallar(
+      "El JSON de análisis no declara un número válido de celdas significativas.",
+    );
   }
   if (!Array.isArray(d.pares)) {
-    fallar('El JSON de análisis no declara una lista de pares válida.')
+    fallar("El JSON de análisis no declara una lista de pares válida.");
   }
   if (!Array.isArray(d.resultados_pixeles)) {
-    fallar('El JSON de análisis no declara una lista de resultados por celda válida.')
+    fallar(
+      "El JSON de análisis no declara una lista de resultados por celda válida.",
+    );
   }
   return {
     fuente: d.fuente as string,
@@ -194,41 +242,54 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
     region_nombre: d.region_nombre as string,
     nombre_variable: d.nombre_variable as string,
     unidad: d.unidad as string,
-    periodo: d.periodo as AnalisisTendencias['periodo'],
-    ...(typeof d.contexto_oms === 'string' ? { contexto_oms: d.contexto_oms } : {}),
+    periodo: d.periodo as AnalisisTendencias["periodo"],
+
     pares: d.pares.map(validarPar),
     pixeles_probados: d.pixeles_probados as number,
     pixeles_significativos_fdr: d.pixeles_significativos_fdr as number,
     resultados_pixeles: d.resultados_pixeles.map(validarPixel),
-    limitacion: typeof d.limitacion === 'string' ? d.limitacion : undefined,
-  }
+    limitacion: typeof d.limitacion === "string" ? d.limitacion : undefined,
+  };
 }
 
 /** Lee y valida el JSON de una variable; lanza un error con mensaje claro. */
-export async function cargarVariable(id: string): Promise<AnalisisTendencias> {
-  const entrada = CATALOGO.find((variable) => variable.id === id)
+export async function cargarVariable(
+  id: string,
+  region: string,
+): Promise<AnalisisTendencias> {
+  const entrada = CATALOGO.some((variable) => variable.id === id);
   if (!entrada) {
-    fallar(`No hay ninguna variable registrada con el identificador "${id}".`)
+    fallar(`No hay ninguna variable registrada con el identificador "${id}".`);
   }
-  const enCache = cache.get(id)
-  if (enCache) return enCache
 
-  let respuesta: Response
+  const clave = `${region}/${id}`;
+  const enCache = cache.get(id);
+  if (enCache) return enCache;
+
+  const url = `/data/${region}/${id}.json`;
+
+  let respuesta: Response;
   try {
-    respuesta = await fetch(entrada.url)
+    respuesta = await fetch(url);
   } catch {
-    fallar(`No se pudo conectar para leer ${entrada.url}.`)
+    fallar(`No se pudo conectar para leer ${url}.`);
   }
   if (!respuesta.ok) {
-    fallar(`El JSON de análisis no se pudo leer (HTTP ${respuesta.status}): ${entrada.url}.`)
+    fallar(
+      `El JSON de análisis no se pudo leer (HTTP ${respuesta.status}): ${url}.`,
+    );
   }
-  let datos: unknown
+  let datos: unknown;
   try {
-    datos = await respuesta.json()
+    datos = await respuesta.json();
   } catch {
-    fallar(`El JSON de análisis no es válido: ${entrada.url}.`)
+    fallar(`El JSON de análisis no es válido: ${url}.`);
   }
-  const analizados = validarAnalisis(datos)
-  cache.set(id, analizados)
-  return analizados
+  const analizados = validarAnalisis(datos);
+  if (analizados.region !== region) {
+    fallar(`${url} declara la región "${analizados.region}", no ${region}.`);
+  }
+
+  cache.set(clave, analizados);
+  return analizados;
 }

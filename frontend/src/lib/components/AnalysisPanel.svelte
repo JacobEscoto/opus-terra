@@ -1,33 +1,44 @@
 <script lang="ts">
-  import type { EstadoCarga } from '../data/loadAnalysis'
-  import type { VariableCatalogo } from '../data/loadAnalysis'
-  import VariableSelector from './VariableSelector.svelte'
-  import { aniosDelPeriodo, fraseResumen, unidadLegible, type PreparacionCapa } from '../data/capa'
-  import type { AnalisisTendencias, ParRegiones } from '../types/analysis'
-  import Legend from './Legend.svelte'
-  import PairList from './PairList.svelte'
-  import RegionCard from './RegionCard.svelte'
+  import type {
+    EstadoCarga,
+    RegionDisponible,
+    VariableCatalogo,
+  } from "../data/loadAnalysis";
+  import VariableSelector from "./VariableSelector.svelte";
+  import {
+    aniosDelPeriodo,
+    fraseResumen,
+    unidadLegible,
+    type PreparacionCapa,
+  } from "../data/capa";
+  import type { AnalisisTendencias, ParRegiones } from "../types/analysis";
+  import Legend from "./Legend.svelte";
+  import PairList from "./PairList.svelte";
+  import RegionCard from "./RegionCard.svelte";
 
   interface Props {
     /** Estado de la lectura del JSON (cargando / error / listo). */
-    carga: EstadoCarga
+    carga: EstadoCarga;
     /** Par elegido actualmente, o null para la vista de lista. */
-    parSeleccionado: ParRegiones | null
-    onSeleccionar: (id: string) => void
-    onVolver: () => void
-    onReintentar: () => void
-    variables: VariableCatalogo[]
-    variableActiva: string
-    variablesCargadas: string[]
-    preparacion: PreparacionCapa | null
-    onCambiarVariable: (id: string) => void
-    capaVisible: boolean
-    onAlternarCapa: () => void
-    anio: number
-    anualesDisponibles: boolean
-    escalaMaxima: number
-    recorridoActivo: boolean
-    onRecorrido: () => void
+    parSeleccionado: ParRegiones | null;
+    onSeleccionar: (id: string) => void;
+    onVolver: () => void;
+    onReintentar: () => void;
+    regiones: RegionDisponible[];
+    regionActiva: string;
+    onCambiarRegion: (id: string) => void;
+    variables: VariableCatalogo[];
+    variableActiva: string;
+    variablesCargadas: string[];
+    preparacion: PreparacionCapa | null;
+    onCambiarVariable: (id: string) => void;
+    capaVisible: boolean;
+    onAlternarCapa: () => void;
+    anio: number;
+    anualesDisponibles: boolean;
+    escalaMaxima: number;
+    recorridoActivo: boolean;
+    onRecorrido: () => void;
   }
 
   let {
@@ -36,6 +47,9 @@
     onSeleccionar,
     onVolver,
     onReintentar,
+    regiones,
+    regionActiva,
+    onCambiarRegion,
     variables,
     variableActiva,
     variablesCargadas,
@@ -48,211 +62,273 @@
     escalaMaxima,
     recorridoActivo,
     onRecorrido,
-  }: Props = $props()
+  }: Props = $props();
 
-  let panelExpandido = $state(false)
+  let panelExpandido = $state(false);
 
-  const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
-  const anios = $derived(datos ? aniosDelPeriodo(datos) : 0)
-  const aniosCompletos = $derived(datos?.periodo.anios_completos?.length ?? anios)
+  const datos = $derived(carga.estado === "listo" ? carga.datos : null);
+  const anios = $derived(datos ? aniosDelPeriodo(datos) : 0);
+  const aniosCompletos = $derived(
+    datos?.periodo.anios_completos?.length ?? anios,
+  );
 
-  function pendienteDe(region: ParRegiones['region_a']): number | null {
+  function pendienteDe(region: ParRegiones["region_a"]): number | null {
     const resultado = datos?.resultados_pixeles.find(
       (pixel) => pixel.lat === region.lat && pixel.lon === region.lon,
-    )
-    return resultado?.sen_unidad_por_anio ?? null
+    );
+    return resultado?.sen_unidad_por_anio ?? null;
   }
 
   function esPromedioDeArea(conjunto: AnalisisTendencias): boolean {
-    return conjunto.pixeles_probados === 0 && conjunto.limitacion?.includes('area-promedio') === true
+    return (
+      conjunto.pixeles_probados === 0 &&
+      conjunto.limitacion?.includes("area-promedio") === true
+    );
   }
 
   function celdasSignificativas(conjunto: AnalisisTendencias) {
-    return conjunto.resultados_pixeles.filter((pixel) => pixel.significativa_fdr)
+    return conjunto.resultados_pixeles.filter(
+      (pixel) => pixel.significativa_fdr,
+    );
   }
 
   /** Signo de una pendiente: «+», «−» o nada cuando es cero. */
   function signo(valor: number): string {
-    return valor > 0 ? '+' : valor < 0 ? '−' : ''
+    return valor > 0 ? "+" : valor < 0 ? "−" : "";
   }
 
   /** Pendiente anual en palabras: «+0.028 °C por año». */
   function cambioPorAnio(pendiente: number): string {
-    const unidad = unidadLegible(datos?.unidad ?? '')
-    return `${signo(pendiente)}${Math.abs(pendiente).toFixed(3)} ${unidad} por año`
+    const unidad = unidadLegible(datos?.unidad ?? "");
+    return `${signo(pendiente)}${Math.abs(pendiente).toFixed(3)} ${unidad} por año`;
   }
 
   /** Acumulado del periodo: «≈ +0.68 °C en 24 años». */
   function cambioAcumulado(pendiente: number, anios: number): string {
-    const unidad = unidadLegible(datos?.unidad ?? '')
-    return `≈ ${signo(pendiente)}${Math.abs(pendiente * Math.max(anios - 1, 0)).toFixed(2)} ${unidad} en ${anios} años`
+    const unidad = unidadLegible(datos?.unidad ?? "");
+    return `≈ ${signo(pendiente)}${Math.abs(pendiente * Math.max(anios - 1, 0)).toFixed(2)} ${unidad} en ${anios} años`;
   }
 </script>
 
-<section class="panel" class:panel--expandido={panelExpandido} aria-label="Análisis de tendencias por pares de regiones">
+<section
+  class="panel"
+  class:panel--expandido={panelExpandido}
+  aria-label="Análisis de tendencias por pares de regiones"
+>
   <header class="panel__head">
     <div class="panel__fila">
       <p class="kicker"><span>02</span>Análisis de tendencias</p>
-    {#if datos}
+      {#if datos}
         <span class="panel__mock" title="Datos procesados del backend">
           Datos procesados / {datos.region_nombre}
         </span>
       {/if}
     </div>
-    <h2>{datos?.nombre_variable ?? '—'}</h2>
+    <h2>{datos?.nombre_variable ?? "—"}</h2>
     <button
       type="button"
       class="panel__toggle"
       aria-expanded={panelExpandido}
       onclick={() => (panelExpandido = !panelExpandido)}
     >
-      <span>{panelExpandido ? 'Cerrar panel' : 'Abrir panel'}</span>
-      <span aria-hidden="true">{panelExpandido ? '↓' : '↑'}</span>
+      <span>{panelExpandido ? "Cerrar panel" : "Abrir panel"}</span>
+      <span aria-hidden="true">{panelExpandido ? "↓" : "↑"}</span>
     </button>
     {#if datos}
       <p class="panel__resumen">{fraseResumen(datos)}</p>
       <details class="panel__detalles">
         <summary>Ver detalles técnicos</summary>
         <p class="panel__meta">
-          {datos.variable}<span class="slash">/</span>{datos.unidad}<span class="slash">/</span>{datos.periodo.inicio}–{datos.periodo.fin}
+          {datos.variable}<span class="slash">/</span>{datos.unidad}<span
+            class="slash">/</span
+          >{datos.periodo.inicio}–{datos.periodo.fin}
         </p>
       </details>
     {/if}
   </header>
 
   <div class="panel__contenido">
-  {#if carga.estado === 'cargando'}
-    <div class="estado" role="status" aria-live="polite">
-      <p>Leyendo datos de análisis…</p>
-      <div class="estado__barra"><span></span></div>
-    </div>
-  {:else if carga.estado === 'error'}
+    {#if carga.estado === "cargando"}
+      <div class="estado" role="status" aria-live="polite">
+        <p>Leyendo datos de análisis…</p>
+        <div class="estado__barra"><span></span></div>
+      </div>
+    {:else if carga.estado === "error"}
       <div class="estado estado--error" role="status">
-      <p>{carga.mensaje}</p>
-      <button type="button" class="estado__reintentar" onclick={onReintentar}>Reintentar</button>
-    </div>
-  {:else if datos && parSeleccionado}
-    <div class="detalle">
-      <button type="button" class="panel__volver" onclick={onVolver}>← Volver a la lista</button>
-      <p class="detalle__intro">
-        Dos regiones del mismo par, con su tendencia y su marca de significancia.
-      </p>
-      <div class="detalle__regiones">
-        <RegionCard
-          region={parSeleccionado.region_a}
-          unidad={datos.unidad}
-          fuente={datos.fuente}
-          pendiente={pendienteDe(parSeleccionado.region_a)}
-          anios={aniosCompletos}
-        />
-        <RegionCard
-          region={parSeleccionado.region_b}
-          unidad={datos.unidad}
-          fuente={datos.fuente}
-          pendiente={pendienteDe(parSeleccionado.region_b)}
-          anios={aniosCompletos}
-        />
+        <p>{carga.mensaje}</p>
+        <button type="button" class="estado__reintentar" onclick={onReintentar}
+          >Reintentar</button
+        >
       </div>
-    </div>
-  {:else if datos}
-    <div class="panel__cuerpo">
-      <VariableSelector
-        variables={variables}
-        activa={variableActiva}
-        cargadas={variablesCargadas}
-        onCambiar={onCambiarVariable}
-      />
-      <div class="capa-control">
-        <div>
-          <strong class="capa-control__titulo">Marcadores de {datos.nombre_variable}</strong>
-          <p class="capa-control__texto">
-            {#if preparacion && preparacion.significativas > 0}
-              Tendencia de {datos.nombre_variable}, ajustada por ENSO.{' '}
-              {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} zonas donde el cambio es claro y no
-              parece casualidad.{' '}
-              {#if datos.pares.length === 0}No encontramos zonas con cambios opuestos.{/if}
-            {:else}
-              Sin celdas con tendencia significativa
-            {/if}
-          </p>
+    {:else if datos && parSeleccionado}
+      <div class="detalle">
+        <button type="button" class="panel__volver" onclick={onVolver}
+          >← Volver a la lista</button
+        >
+        <p class="detalle__intro">
+          Dos regiones del mismo par, con su tendencia y su marca de
+          significancia.
+        </p>
+        <div class="detalle__regiones">
+          <RegionCard
+            region={parSeleccionado.region_a}
+            unidad={datos.unidad}
+            fuente={datos.fuente}
+            pendiente={pendienteDe(parSeleccionado.region_a)}
+            anios={aniosCompletos}
+          />
+          <RegionCard
+            region={parSeleccionado.region_b}
+            unidad={datos.unidad}
+            fuente={datos.fuente}
+            pendiente={pendienteDe(parSeleccionado.region_b)}
+            anios={aniosCompletos}
+          />
         </div>
-        <button type="button" class="capa-control__boton" onclick={onAlternarCapa} aria-pressed={capaVisible}>
-          {capaVisible ? 'Ocultar' : 'Mostrar'}
-        </button>
       </div>
-       <Legend anio={anio} disponible={anualesDisponibles} escalaMaxima={escalaMaxima} />
-      <article class="conjunto" aria-labelledby={`titulo-${datos.variable}`}>
-            <div class="conjunto__cabecera">
+    {:else if datos}
+      <div class="panel__cuerpo">
+        <label class="region-select">
+          <span class="region-select__etiqueta">Región</span>
+          <select
+            value={regionActiva}
+            onchange={(evento) => onCambiarRegion(evento.currentTarget.value)}
+          >
+            {#each regiones as region (region.id)}
+              <option value={region.id}>{region.nombre}</option>
+            {/each}
+          </select>
+        </label>
+        <VariableSelector
+          {variables}
+          activa={variableActiva}
+          cargadas={variablesCargadas}
+          onCambiar={onCambiarVariable}
+        />
+        <div class="capa-control">
+          <div>
+            <strong class="capa-control__titulo"
+              >Marcadores de {datos.nombre_variable}</strong
+            >
+            <p class="capa-control__texto">
+              {#if preparacion && preparacion.significativas > 0}
+                Tendencia de {datos.nombre_variable}, ajustada por ENSO.{" "}
+                {datos.pixeles_significativos_fdr.toLocaleString("es-ES")} zonas
+                donde el cambio es claro y no parece casualidad.{" "}
+                {#if datos.pares.length === 0}No encontramos zonas con cambios
+                  opuestos.{/if}
+              {:else}
+                Sin celdas con tendencia significativa
+              {/if}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="capa-control__boton"
+            onclick={onAlternarCapa}
+            aria-pressed={capaVisible}
+          >
+            {capaVisible ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
+        <Legend {anio} disponible={anualesDisponibles} {escalaMaxima} />
+        <article class="conjunto" aria-labelledby={`titulo-${datos.variable}`}>
+          <div class="conjunto__cabecera">
             <div>
               <p class="conjunto__fuente">{datos.fuente}</p>
               <h3 id={`titulo-${datos.variable}`}>{datos.nombre_variable}</h3>
             </div>
           </div>
 
-            {#if esPromedioDeArea(datos)}
+          {#if esPromedioDeArea(datos)}
             <div class="estado-datos estado-datos--area">
-               <strong>Promedio de área: no hay análisis por celdas</strong>
-                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} con cambio claro</p>
+              <strong>Promedio de área: no hay análisis por celdas</strong>
+              <p>
+                zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr}
+                con cambio claro
+              </p>
             </div>
-            {:else if datos.pixeles_significativos_fdr === 0}
-              <div class="estado-datos">
-                <strong>Sin zonas con cambio claro</strong>
-              <p>zonas analizadas: {datos.pixeles_probados} · 0 con cambio claro</p>
+          {:else if datos.pixeles_significativos_fdr === 0}
+            <div class="estado-datos">
+              <strong>Sin zonas con cambio claro</strong>
+              <p>
+                zonas analizadas: {datos.pixeles_probados} · 0 con cambio claro
+              </p>
+            </div>
+          {:else if datos.pares.length === 0}
+            <div class="estado-datos">
+              <strong>Sin pares de tendencias opuestas claras</strong>
+              <p>
+                zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr}
+                con cambio claro
+              </p>
+            </div>
+          {:else}
+            <div class="recorrido-control">
+              <div>
+                <strong>Recorrido por las zonas</strong>
+                <p>Ve un par a la vez y detente cuando quieras.</p>
               </div>
-            {:else if datos.pares.length === 0}
-              <div class="estado-datos">
-                <strong>Sin pares de tendencias opuestas claras</strong>
-                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} con cambio claro</p>
-              </div>
-            {:else}
-              <div class="recorrido-control">
-                <div>
-                  <strong>Recorrido por las zonas</strong>
-                  <p>Ve un par a la vez y detente cuando quieras.</p>
-                </div>
-                <button type="button" onclick={onRecorrido} aria-pressed={recorridoActivo}>
-                  {recorridoActivo ? 'Detener' : 'Ver recorrido'}
-                </button>
-              </div>
-              <PairList
-               pares={datos.pares}
-               seleccionadoId={parSeleccionado?.id ?? null}
-               onSeleccionar={onSeleccionar}
-               resultados={datos.resultados_pixeles}
-               unidad={datos.unidad}
-               anios={aniosCompletos}
-             />
+              <button
+                type="button"
+                onclick={onRecorrido}
+                aria-pressed={recorridoActivo}
+              >
+                {recorridoActivo ? "Detener" : "Ver recorrido"}
+              </button>
+            </div>
+            <PairList
+              pares={datos.pares}
+              seleccionadoId={parSeleccionado?.id ?? null}
+              {onSeleccionar}
+              resultados={datos.resultados_pixeles}
+              unidad={datos.unidad}
+              anios={aniosCompletos}
+            />
           {/if}
 
           {#if preparacion?.limitado}
             <div class="estado-datos">
               <strong>{preparacion.aviso}</strong>
-               <p>El JSON conserva las {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} zonas con cambio claro.</p>
+              <p>
+                El JSON conserva las {datos.pixeles_significativos_fdr.toLocaleString(
+                  "es-ES",
+                )} zonas con cambio claro.
+              </p>
             </div>
           {/if}
 
-          {#if datos.variable === 'merra2_t2m' || datos.variable === 'mod13c2_ndvi'}
+          {#if datos.variable === "merra2_t2m" || datos.variable === "mod13c2_ndvi"}
             <div class="celdas" aria-label="Celdas T2M significativas">
               <h4>Celdas significativas</h4>
-                {#each (preparacion?.celdas ?? celdasSignificativas(datos)) as pixel}
-                 <div class="celda">
-                   <details class="celda__detalles">
-                     <summary>Ver coordenadas</summary>
-                     <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
-                   </details>
-                   <span class="celda__valores">
-                    <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
+              {#each preparacion?.celdas ?? celdasSignificativas(datos) as pixel}
+                <div class="celda">
+                  <details class="celda__detalles">
+                    <summary>Ver coordenadas</summary>
+                    <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span
+                    >
+                  </details>
+                  <span class="celda__valores">
+                    <span
+                      class={pixel.sen_unidad_por_anio > 0
+                        ? "celda--positiva"
+                        : pixel.sen_unidad_por_anio < 0
+                          ? "celda--negativa"
+                          : ""}
+                    >
                       {cambioPorAnio(pixel.sen_unidad_por_anio)}
                     </span>
-                    <span class="celda__acumulado">{cambioAcumulado(pixel.sen_unidad_por_anio, anios)}</span>
+                    <span class="celda__acumulado"
+                      >{cambioAcumulado(pixel.sen_unidad_por_anio, anios)}</span
+                    >
                   </span>
                 </div>
               {/each}
             </div>
           {/if}
         </article>
-    </div>
-  {/if}
+      </div>
+    {/if}
   </div>
 </section>
 
@@ -280,7 +356,7 @@
   /* Esquinas de mira, como en un instrumento óptico: ámbar arriba a la
      izquierda, hairline abajo a la derecha. */
   .panel::before {
-    content: '';
+    content: "";
     position: absolute;
     top: -1px;
     left: -1px;
@@ -291,7 +367,7 @@
   }
 
   .panel::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -1px;
     right: -1px;
@@ -375,6 +451,29 @@
     display: grid;
     gap: 16px;
     padding-top: 15px;
+  }
+  .region-select {
+    display: grid;
+    gap: 6px;
+  }
+
+  .region-select__etiqueta {
+    font: 10px var(--mono);
+    letter-spacing: 0.08em;
+    color: var(--faint);
+  }
+
+  .region-select select {
+    padding: 7px 10px;
+    border: 1px solid var(--muted);
+    background: var(--bg);
+    font: 11px var(--mono);
+    color: var(--ink);
+  }
+
+  .region-select select:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
   }
 
   .conjunto {

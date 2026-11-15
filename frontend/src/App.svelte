@@ -1,42 +1,63 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte'
-  import EarthGlobe from './lib/components/EarthGlobe.svelte'
-  import AnalysisPanel from './lib/components/AnalysisPanel.svelte'
-  import TimelineControl from './lib/components/TimelineControl.svelte'
-  import { cargarVariable, CATALOGO, type EstadoCarga } from './lib/data/loadAnalysis'
-  import { prepararCapa, tieneValoresAnuales } from './lib/data/capa'
-  import type { ParRegiones } from './lib/types/analysis'
-  import GlobeLegend from './lib/components/GlobeLegend.svelte'
-  import Glosario from './lib/components/paginas/Glosario.svelte'
-  import AcercaDe from './lib/components/paginas/AcercaDe.svelte'
-  import { APP, AYUDA_MAPA, NAVEGACION } from './lib/data/textos'
+  import { onDestroy, onMount } from "svelte";
+  import EarthGlobe from "./lib/components/EarthGlobe.svelte";
+  import AnalysisPanel from "./lib/components/AnalysisPanel.svelte";
+  import TimelineControl from "./lib/components/TimelineControl.svelte";
+  import {
+    cargarVariable,
+    cargarRegiones,
+    CATALOGO,
+    type EstadoCarga,
+    type RegionDisponible,
+  } from "./lib/data/loadAnalysis";
+  import { prepararCapa, tieneValoresAnuales } from "./lib/data/capa";
+  import type { ParRegiones } from "./lib/types/analysis";
+  import GlobeLegend from "./lib/components/GlobeLegend.svelte";
+  import Glosario from "./lib/components/paginas/Glosario.svelte";
+  import AcercaDe from "./lib/components/paginas/AcercaDe.svelte";
+  import { APP, AYUDA_MAPA, NAVEGACION } from "./lib/data/textos";
 
-  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>
-  type SetAutoRotate = (enabled: boolean) => void
+  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
+  type SetAutoRotate = (enabled: boolean) => void;
 
-  let carga = $state<EstadoCarga>({ estado: 'cargando' })
-  let variableActiva = $state('merra2_t2m')
-  let variablesCargadas = $state<string[]>([])
-  let solicitud = 0
+  let carga = $state<EstadoCarga>({ estado: "cargando" });
+  let variableActiva = $state("merra2_t2m");
+  let variablesCargadas = $state<string[]>([]);
+  let regiones = $state<RegionDisponible[]>([]);
+  let regionActiva = $state("honduras");
+
+  const regionActual = $derived(
+    regiones.find((region) => region.id == regionActiva) ?? null,
+  );
+
+  const variablesDisponibles = $derived(
+    regionActual
+      ? CATALOGO.filter((variable) =>
+          regionActual.variables.includes(variable.id),
+        )
+      : CATALOGO,
+  );
+
+  let solicitud = 0;
 
   /** Identificador del par elegido en la lista; null = vista de lista. */
-  let idSeleccionado = $state<string | null>(null)
+  let idSeleccionado = $state<string | null>(null);
 
   /** Año mostrado en el panel cuando existan series anuales por celda. */
-  let anio = $state<number>(2023)
-  let capaTendenciaVisible = $state(true)
-  let mostrarAyuda = $state(false)
-  let recorridoActivo = $state(false)
-  let focusOn = $state<FocusOn | null>(null)
-  let cancelFocus = $state<(() => void) | null>(null)
-  let setAutoRotate = $state<SetAutoRotate | null>(null)
-  let timerRecorrido: ReturnType<typeof setTimeout> | null = null
-  let recorridoToken = 0
-  let enfoqueInicialHecho = false
-  type Pagina = 'glosario' | 'acerca'
-  let pagina = $state<Pagina | null>(null)
-  let enlaceQueAbrioPagina = $state<HTMLElement | null>(null)
-  let menuAbierto = $state(false)
+  let anio = $state<number>(2023);
+  let capaTendenciaVisible = $state(true);
+  let mostrarAyuda = $state(false);
+  let recorridoActivo = $state(false);
+  let focusOn = $state<FocusOn | null>(null);
+  let cancelFocus = $state<(() => void) | null>(null);
+  let setAutoRotate = $state<SetAutoRotate | null>(null);
+  let timerRecorrido: ReturnType<typeof setTimeout> | null = null;
+  let recorridoToken = 0;
+  let enfoqueInicialHecho = false;
+  type Pagina = "glosario" | "acerca";
+  let pagina = $state<Pagina | null>(null);
+  let enlaceQueAbrioPagina = $state<HTMLElement | null>(null);
+  let menuAbierto = $state(false);
 
   /**
    * En escritorio la columna del panel queda a la derecha: un offset negativo
@@ -44,91 +65,111 @@
    * de EarthGlobe. En móvil
    * la columna es única y el planeta vuelve al centro.
    */
-  let escritorio = $state(true)
+  let escritorio = $state(true);
 
-  const desplazamiento = $derived(escritorio ? -0.17 : 0)
+  const desplazamiento = $derived(escritorio ? -0.17 : 0);
 
-  const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
-  const preparacion = $derived(datos ? prepararCapa(datos) : null)
-  const anualesDisponibles = $derived(datos ? tieneValoresAnuales(datos) : false)
+  const datos = $derived(carga.estado === "listo" ? carga.datos : null);
+  const preparacion = $derived(datos ? prepararCapa(datos) : null);
+  const anualesDisponibles = $derived(
+    datos ? tieneValoresAnuales(datos) : false,
+  );
 
   const parSeleccionado = $derived(
     datos
-      ? datos.pares.find((par) => par.id === idSeleccionado) ?? null
-      : null
-  )
+      ? (datos.pares.find((par) => par.id === idSeleccionado) ?? null)
+      : null,
+  );
+
+  function centroDe(id: string): { lat: number; lon: number } {
+    const region = regiones.find((item) => item.id == id);
+    if (!region) {
+      return {
+        lat: 14.75,
+        lon: -86.25,
+      };
+    }
+
+    const [lonMin, latMin, lonMax, latMax] = region.bbox;
+    return {
+      lat: (latMin + latMax) / 2,
+      lon: (lonMin + lonMax) / 2,
+    };
+  }
 
   function paginaDesdeHash() {
-    const hash = window.location.hash.slice(1)
-    pagina = hash === 'glosario' || hash === 'acerca' ? hash : null
+    const hash = window.location.hash.slice(1);
+    pagina = hash === "glosario" || hash === "acerca" ? hash : null;
   }
 
   function abrirPagina(nombre: Pagina, evento?: MouseEvent) {
-    if (evento?.currentTarget instanceof HTMLElement) enlaceQueAbrioPagina = evento.currentTarget
-    mostrarAyuda = false
-    menuAbierto = false
-    window.location.hash = nombre
+    if (evento?.currentTarget instanceof HTMLElement)
+      enlaceQueAbrioPagina = evento.currentTarget;
+    mostrarAyuda = false;
+    menuAbierto = false;
+    window.location.hash = nombre;
   }
 
   function cerrarPagina(restaurarFoco = false) {
-    window.location.hash = ''
-    if (restaurarFoco) requestAnimationFrame(() => enlaceQueAbrioPagina?.focus())
+    window.location.hash = "";
+    if (restaurarFoco)
+      requestAnimationFrame(() => enlaceQueAbrioPagina?.focus());
   }
 
   function manejarEscape(evento: KeyboardEvent) {
-    if (evento.key !== 'Escape') return
+    if (evento.key !== "Escape") return;
     if (menuAbierto) {
-      menuAbierto = false
-      return
+      menuAbierto = false;
+      return;
     }
-    if (!pagina) return
-    evento.preventDefault()
-    cerrarPagina(true)
+    if (!pagina) return;
+    evento.preventDefault();
+    cerrarPagina(true);
   }
 
   function esperar(ms: number, token: number): Promise<boolean> {
     return new Promise((resolve) => {
       timerRecorrido = setTimeout(() => {
-        timerRecorrido = null
-        resolve(token === recorridoToken)
-      }, ms)
-    })
+        timerRecorrido = null;
+        resolve(token === recorridoToken);
+      }, ms);
+    });
   }
 
   function detenerRecorrido() {
-    recorridoToken += 1
-    recorridoActivo = false
+    recorridoToken += 1;
+    recorridoActivo = false;
     if (timerRecorrido !== null) {
-      clearTimeout(timerRecorrido)
-      timerRecorrido = null
+      clearTimeout(timerRecorrido);
+      timerRecorrido = null;
     }
-    cancelFocus?.()
-    setAutoRotate?.(true)
+    cancelFocus?.();
+    setAutoRotate?.(true);
   }
 
   async function iniciarRecorrido(pares: ParRegiones[]) {
     if (recorridoActivo) {
-      detenerRecorrido()
-      return
+      detenerRecorrido();
+      return;
     }
-    if (!focusOn || pares.length === 0) return
+    if (!focusOn || pares.length === 0) return;
 
-    const token = ++recorridoToken
-    recorridoActivo = true
-    setAutoRotate?.(false)
+    const token = ++recorridoToken;
+    recorridoActivo = true;
+    setAutoRotate?.(false);
     for (const par of pares) {
-      if (token !== recorridoToken) return
-      idSeleccionado = par.id
-      const lat = (par.region_a.lat + par.region_b.lat) / 2
-      const lon = (par.region_a.lon + par.region_b.lon) / 2
-      await focusOn(lat, lon, 2000)
-      if (token !== recorridoToken) return
-      if (!(await esperar(4000, token))) return
+      if (token !== recorridoToken) return;
+      idSeleccionado = par.id;
+      const lat = (par.region_a.lat + par.region_b.lat) / 2;
+      const lon = (par.region_a.lon + par.region_b.lon) / 2;
+      await focusOn(lat, lon, 2000);
+      if (token !== recorridoToken) return;
+      if (!(await esperar(4000, token))) return;
     }
     if (token === recorridoToken) {
-      recorridoActivo = false
-      idSeleccionado = null
-      setAutoRotate?.(true)
+      recorridoActivo = false;
+      idSeleccionado = null;
+      setAutoRotate?.(true);
     }
   }
 
@@ -137,68 +178,90 @@
     nextCancelFocus: () => void,
     nextSetAutoRotate: SetAutoRotate,
   ) {
-    focusOn = nextFocusOn
-    cancelFocus = nextCancelFocus
-    setAutoRotate = nextSetAutoRotate
+    focusOn = nextFocusOn;
+    cancelFocus = nextCancelFocus;
+    setAutoRotate = nextSetAutoRotate;
   }
 
   $effect(() => {
-    if (carga.estado !== 'listo' || !focusOn || enfoqueInicialHecho) return
-    enfoqueInicialHecho = true
-    void focusOn(14.75, -86.25, 2000)
-  })
+    if (carga.estado !== "listo" || !focusOn || enfoqueInicialHecho) return;
+    enfoqueInicialHecho = true;
+    const centro = centroDe(regionActiva);
+    void focusOn(centro.lat, centro.lon, 2000);
+  });
 
   /** Lee el JSON seleccionado y reemplaza la capa sin crear otra escena. */
   async function cambiarVariable(id: string) {
-    detenerRecorrido()
-    const numeroSolicitud = ++solicitud
-    variableActiva = id
-    carga = { estado: 'cargando' }
-    idSeleccionado = null
+    detenerRecorrido();
+    const numeroSolicitud = ++solicitud;
+    variableActiva = id;
+    carga = { estado: "cargando" };
+    idSeleccionado = null;
     try {
-      const resultado = await cargarVariable(id)
-      if (numeroSolicitud !== solicitud) return
-      if (!variablesCargadas.includes(id)) variablesCargadas = [...variablesCargadas, id]
-      carga = { estado: 'listo', datos: resultado }
-      anio = resultado.periodo.fin
+      const resultado = await cargarVariable(id, regionActiva);
+      if (numeroSolicitud !== solicitud) return;
+      if (!variablesCargadas.includes(id))
+        variablesCargadas = [...variablesCargadas, id];
+      carga = { estado: "listo", datos: resultado };
+      anio = resultado.periodo.fin;
     } catch (error: unknown) {
-      if (numeroSolicitud !== solicitud) return
+      if (numeroSolicitud !== solicitud) return;
       carga = {
-        estado: 'error',
+        estado: "error",
         mensaje:
           error instanceof Error
             ? error.message
-            : 'No se pudieron leer los datos de análisis.',
-      }
+            : "No se pudieron leer los datos de análisis.",
+      };
     }
+  }
+
+  async function cambiarRegion(id: string) {
+    if (id === regionActiva) return;
+    detenerRecorrido();
+    regionActiva = id;
+    idSeleccionado = null;
+    enfoqueInicialHecho = false;
+    variablesCargadas = [];
+
+    const permitidas =
+      regiones.find((region) => region.id === id)?.variables ?? [];
+    if (!permitidas.includes(variableActiva)) {
+      variableActiva = permitidas[0] ?? variableActiva;
+    }
+    await cambiarVariable(variableActiva);
   }
 
   function cargar() {
-    void cambiarVariable(variableActiva)
+    void cambiarVariable(variableActiva);
   }
 
   onMount(() => {
-    void cambiarVariable(variableActiva)
-    paginaDesdeHash()
-    window.addEventListener('hashchange', paginaDesdeHash)
-    window.addEventListener('keydown', manejarEscape)
+    void cargarRegiones()
+      .then((list) => (regiones = list))
+      .catch(console.error);
+    void cambiarVariable(variableActiva);
+    paginaDesdeHash();
+    window.addEventListener("hashchange", paginaDesdeHash);
+    window.addEventListener("keydown", manejarEscape);
 
     // Sincroniza el desplazamiento del planeta con el punto de quiebre del layout.
-    const consulta = window.matchMedia('(min-width: 1000px)')
-    escritorio = consulta.matches
-    const actualizar = (evento: MediaQueryListEvent) => (escritorio = evento.matches)
-    consulta.addEventListener('change', actualizar)
+    const consulta = window.matchMedia("(min-width: 1000px)");
+    escritorio = consulta.matches;
+    const actualizar = (evento: MediaQueryListEvent) =>
+      (escritorio = evento.matches);
+    consulta.addEventListener("change", actualizar);
     return () => {
-      consulta.removeEventListener('change', actualizar)
-      window.removeEventListener('hashchange', paginaDesdeHash)
-      window.removeEventListener('keydown', manejarEscape)
-    }
-  })
+      consulta.removeEventListener("change", actualizar);
+      window.removeEventListener("hashchange", paginaDesdeHash);
+      window.removeEventListener("keydown", manejarEscape);
+    };
+  });
 
   onDestroy(() => {
-    detenerRecorrido()
-    cancelFocus?.()
-  })
+    detenerRecorrido();
+    cancelFocus?.();
+  });
 </script>
 
 <svelte:head>
@@ -216,38 +279,70 @@
 
 <!-- dataMode ilumina el planeta de forma pareja mientras un par está abierto;
      horizontalOffset lo corre a la izquierda para despejar la columna del panel. -->
-  <EarthGlobe
-    horizontalOffset={desplazamiento}
-    dataMode={parSeleccionado !== null}
-    celdas={preparacion?.celdas ?? []}
-    capaVisible={capaTendenciaVisible}
-    anio={anio}
-    anios={datos?.periodo.anios_completos ?? []}
-    escalaMaxima={preparacion?.escalaMaxima}
-    onReady={onGlobeReady}
-    onInteraction={detenerRecorrido}
-  />
+<EarthGlobe
+  horizontalOffset={desplazamiento}
+  dataMode={parSeleccionado !== null}
+  celdas={preparacion?.celdas ?? []}
+  capaVisible={capaTendenciaVisible}
+  {anio}
+  anios={datos?.periodo.anios_completos ?? []}
+  escalaMaxima={preparacion?.escalaMaxima}
+  onReady={onGlobeReady}
+  onInteraction={detenerRecorrido}
+/>
 
 <main class="interface">
   <header class="masthead">
     <span>{APP.marca}</span>
-    <button class="menu-button" type="button" aria-label={menuAbierto ? NAVEGACION.cerrarMenu : NAVEGACION.menu} aria-expanded={menuAbierto} aria-controls="site-menu" onclick={() => (menuAbierto = !menuAbierto)}>
+    <button
+      class="menu-button"
+      type="button"
+      aria-label={menuAbierto ? NAVEGACION.cerrarMenu : NAVEGACION.menu}
+      aria-expanded={menuAbierto}
+      aria-controls="site-menu"
+      onclick={() => (menuAbierto = !menuAbierto)}
+    >
       <span></span><span></span><span></span>
     </button>
   </header>
 
   {#if menuAbierto}
-    <div id="site-menu" class="site-menu" role="dialog" aria-label={NAVEGACION.menu}>
-       <nav aria-label="Secciones del sitio">
-         <a href="#glosario" onclick={(evento) => abrirPagina('glosario', evento)}>{NAVEGACION.glosario}</a>
-        <a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{NAVEGACION.acerca}</a>
+    <div
+      id="site-menu"
+      class="site-menu"
+      role="dialog"
+      aria-label={NAVEGACION.menu}
+    >
+      <nav aria-label="Secciones del sitio">
+        <a
+          href="#glosario"
+          onclick={(evento) => abrirPagina("glosario", evento)}
+          >{NAVEGACION.glosario}</a
+        >
+        <a href="#acerca" onclick={(evento) => abrirPagina("acerca", evento)}
+          >{NAVEGACION.acerca}</a
+        >
       </nav>
-      <button class="about-button" type="button" aria-expanded={mostrarAyuda} aria-controls="about-panel" onclick={() => (mostrarAyuda = !mostrarAyuda)}>{NAVEGACION.comoLeer}</button>
+      <button
+        class="about-button"
+        type="button"
+        aria-expanded={mostrarAyuda}
+        aria-controls="about-panel"
+        onclick={() => (mostrarAyuda = !mostrarAyuda)}
+        >{NAVEGACION.comoLeer}</button
+      >
       {#if mostrarAyuda}
         <div id="about-panel" class="about-panel" aria-labelledby="about-title">
           <h2 id="about-title">{APP.ayudaTitulo}</h2>
           <p>{APP.ayudaTexto}</p>
-          <div class="help-links">{#each AYUDA_MAPA.enlaces as enlace}<a href={enlace.href} onclick={(evento) => abrirPagina(enlace.href.slice(1) as Pagina, evento)}>{enlace.texto}</a>{/each}</div>
+          <div class="help-links">
+            {#each AYUDA_MAPA.enlaces as enlace}<a
+                href={enlace.href}
+                onclick={(evento) =>
+                  abrirPagina(enlace.href.slice(1) as Pagina, evento)}
+                >{enlace.texto}</a
+              >{/each}
+          </div>
         </div>
       {/if}
     </div>
@@ -256,16 +351,16 @@
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
     <div class="legend-slot">
-      <GlobeLegend anio={anio} mostrarAnio={anualesDisponibles} />
+      <GlobeLegend {anio} mostrarAnio={anualesDisponibles} />
     </div>
     <div class="timeline-slot">
       {#if datos}
         <TimelineControl
-           inicio={datos.periodo.inicio}
-           fin={datos.periodo.fin}
-           bind:anio
-           disponible={anualesDisponibles}
-            aviso={APP.avisoSinSerie}
+          inicio={datos.periodo.inicio}
+          fin={datos.periodo.fin}
+          bind:anio
+          disponible={anualesDisponibles}
+          aviso={APP.avisoSinSerie}
         />
       {/if}
     </div>
@@ -275,34 +370,38 @@
   <aside class="rail">
     <div class="rail-slot">
       <AnalysisPanel
-        carga={carga}
-        parSeleccionado={parSeleccionado}
+        {carga}
+        {parSeleccionado}
         onSeleccionar={(id) => (idSeleccionado = id)}
         onVolver={() => (idSeleccionado = null)}
         onReintentar={cargar}
-        variables={CATALOGO}
-        variableActiva={variableActiva}
-        variablesCargadas={variablesCargadas}
-        preparacion={preparacion}
+        {regiones}
+        {regionActiva}
+        onCambiarRegion={(id) => void cambiarRegion(id)}
+        variables={variablesDisponibles}
+        {variableActiva}
+        {variablesCargadas}
+        {preparacion}
         onCambiarVariable={(id) => void cambiarVariable(id)}
         capaVisible={capaTendenciaVisible}
         onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
-        recorridoActivo={recorridoActivo}
+        {recorridoActivo}
         onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
-        anio={anio}
-        anualesDisponibles={anualesDisponibles}
+        {anio}
+        {anualesDisponibles}
         escalaMaxima={preparacion?.escalaMaxima ?? 1}
       />
     </div>
   </aside>
-
 </main>
 
 <footer class="site-footer">© {new Date().getFullYear()} Pegaso-X</footer>
 
 {#if pagina}
   <div class="page-layer" role="dialog" aria-modal="true">
-    {#if pagina === 'glosario'}<Glosario onCerrar={() => cerrarPagina()} />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
+    {#if pagina === "glosario"}<Glosario
+        onCerrar={() => cerrarPagina()}
+      />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
   </div>
 {/if}
 
@@ -314,8 +413,8 @@
     grid-template-columns: 1fr minmax(340px, 430px);
     grid-template-rows: auto 1fr;
     grid-template-areas:
-      'masthead masthead'
-      'stage    rail';
+      "masthead masthead"
+      "stage    rail";
     column-gap: 48px;
   }
 
@@ -325,15 +424,66 @@
     pointer-events: auto;
   }
 
-  .menu-button { display: grid; gap: 4px; width: 36px; height: 32px; padding: 8px 7px; margin-left: auto; border: 1px solid var(--hairline); background: transparent; }
-  .menu-button span { display: block; width: 100%; height: 1px; background: var(--ink); }
-  .site-menu { position: absolute; top: 76px; right: 42px; z-index: 4; width: min(300px, calc(100vw - 48px)); padding: 18px; border: 1px solid var(--hairline); background: rgba(16, 27, 44, .98); box-shadow: 0 18px 40px rgba(0,0,0,.3); pointer-events: auto; }
-  .site-menu nav { display: grid; gap: 15px; font: 12px var(--mono); }
-  .site-menu nav a { color: var(--ink); }
-  .site-menu nav a:hover, .help-links a:hover { color: var(--amber); }
-  .site-menu .about-button { margin-top: 20px; }
-  .help-links { display: flex; gap: 16px; margin-top: 16px; font: 10px var(--mono); color: var(--amber); }
-  .site-menu .about-panel { position: static; width: auto; margin: 18px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--hairline); background: transparent; box-shadow: none; }
+  .menu-button {
+    display: grid;
+    gap: 4px;
+    width: 36px;
+    height: 32px;
+    padding: 8px 7px;
+    margin-left: auto;
+    border: 1px solid var(--hairline);
+    background: transparent;
+  }
+  .menu-button span {
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: var(--ink);
+  }
+  .site-menu {
+    position: absolute;
+    top: 76px;
+    right: 42px;
+    z-index: 4;
+    width: min(300px, calc(100vw - 48px));
+    padding: 18px;
+    border: 1px solid var(--hairline);
+    background: rgba(16, 27, 44, 0.98);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+  }
+  .site-menu nav {
+    display: grid;
+    gap: 15px;
+    font: 12px var(--mono);
+  }
+  .site-menu nav a {
+    color: var(--ink);
+  }
+  .site-menu nav a:hover,
+  .help-links a:hover {
+    color: var(--amber);
+  }
+  .site-menu .about-button {
+    margin-top: 20px;
+  }
+  .help-links {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    font: 10px var(--mono);
+    color: var(--amber);
+  }
+  .site-menu .about-panel {
+    position: static;
+    width: auto;
+    margin: 18px 0 0;
+    padding: 16px 0 0;
+    border: 0;
+    border-top: 1px solid var(--hairline);
+    background: transparent;
+    box-shadow: none;
+  }
 
   .stage {
     grid-area: stage;
@@ -354,10 +504,31 @@
   .timeline-slot {
     pointer-events: auto;
   }
-  .timeline-slot { display: grid; gap: 10px; align-items: end; }
-  .legend-slot { pointer-events: auto; }
-  .page-layer { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--bg); pointer-events: auto; }
-  .site-footer { position: fixed; right: 20px; bottom: 12px; z-index: 3; color: var(--faint); font: 10px var(--mono); pointer-events: none; }
+  .timeline-slot {
+    display: grid;
+    gap: 10px;
+    align-items: end;
+  }
+  .legend-slot {
+    pointer-events: auto;
+  }
+  .page-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    overflow-y: auto;
+    background: var(--bg);
+    pointer-events: auto;
+  }
+  .site-footer {
+    position: fixed;
+    right: 20px;
+    bottom: 12px;
+    z-index: 3;
+    color: var(--faint);
+    font: 10px var(--mono);
+    pointer-events: none;
+  }
 
   /* Columna única: panel debajo del masthead, línea de tiempo al final. */
   @media (max-width: 899px) {
@@ -365,9 +536,9 @@
       grid-template-columns: 1fr;
       grid-template-rows: auto minmax(260px, 1fr) auto;
       grid-template-areas:
-        'masthead'
-        'stage'
-        'rail';
+        "masthead"
+        "stage"
+        "rail";
       column-gap: 0;
     }
 
@@ -387,11 +558,17 @@
       pointer-events: auto;
     }
 
-    .site-menu { right: 24px; }
+    .site-menu {
+      right: 24px;
+    }
   }
 
   @media (max-width: 650px) {
-    .site-menu { top: 64px; right: 17px; width: min(300px, calc(100vw - 34px)); }
+    .site-menu {
+      top: 64px;
+      right: 17px;
+      width: min(300px, calc(100vw - 34px));
+    }
 
     .stage {
       min-height: 285px;
@@ -421,9 +598,9 @@
     }
 
     :global(.timeline-slot .timeline) {
-      background: rgba(11, 18, 32, .48);
-      border-color: rgba(237, 243, 250, .2);
-      box-shadow: 0 -12px 30px rgba(5, 8, 15, .18);
+      background: rgba(11, 18, 32, 0.48);
+      border-color: rgba(237, 243, 250, 0.2);
+      box-shadow: 0 -12px 30px rgba(5, 8, 15, 0.18);
     }
   }
 </style>
