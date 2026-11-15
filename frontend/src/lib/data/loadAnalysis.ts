@@ -1,8 +1,10 @@
 /**
- * Cargador del JSON de análisis.
+ * Cargador de los JSON de análisis.
  *
- * Los tres JSON públicos se leen por `fetch` para que la UI valide la misma
- * estructura que recibirá en producción.
+ * Cada variable del selector tiene su propio JSON en `frontend/public/data/`.
+ * Los archivos se leen por `fetch` para que la UI valide la misma estructura
+ * que recibirá en producción, y se cachean para que cambiar de variable no
+ * vuelva a pedir el archivo.
  */
 import type {
   AnalisisTendencias,
@@ -12,10 +14,56 @@ import type {
   Tendencia,
 } from '../types/analysis'
 
-const URLS_DATOS = [
-  '/data/merra2_t2m.json',
-  '/data/merra2_precipitacion.json',
-  '/data/imerg_precipitacion.json',
+/** Variable disponible en el selector, con su JSON y su leyenda de capa. */
+export interface VariableCatalogo {
+  /** Identificador estable, el mismo que usa el campo `variable` del JSON. */
+  id: string
+  /** Etiqueta corta para el selector. */
+  etiqueta: string
+  /** Ruta del JSON dentro de `frontend/public/data/`. */
+  url: string
+  /** Tema de la variable, para la leyenda de la capa de marcadores. */
+  tema: string
+  /** Producto de origen abreviado, para la leyenda de la capa. */
+  producto: string
+  /** Unidad de la pendiente anual, para la lista de celdas del panel. */
+  unidadAnual: string
+}
+
+/** Catálogo de variables que la interfaz puede representar. */
+export const CATALOGO: VariableCatalogo[] = [
+  {
+    id: 'merra2_t2m',
+    etiqueta: 'Temperatura (T2M)',
+    url: '/data/merra2_t2m.json',
+    tema: 'temperatura',
+    producto: 'MERRA-2',
+    unidadAnual: '°C/año',
+  },
+  {
+    id: 'merra2_precipitacion',
+    etiqueta: 'Precipitación MERRA-2',
+    url: '/data/merra2_precipitacion.json',
+    tema: 'precipitación modelada',
+    producto: 'MERRA-2',
+    unidadAnual: 'mm/año',
+  },
+  {
+    id: 'imerg_precipitacion',
+    etiqueta: 'Precipitación IMERG',
+    url: '/data/imerg_precipitacion.json',
+    tema: 'precipitación observada',
+    producto: 'GPM IMERG',
+    unidadAnual: 'mm/año',
+  },
+  {
+    id: 'mod13c2_ndvi',
+    etiqueta: 'Vegetación (NDVI)',
+    url: '/data/mod13c2_ndvi.json',
+    tema: 'vegetación (NDVI)',
+    producto: 'MODIS',
+    unidadAnual: 'NDVI/año',
+  },
 ]
 
 /** Estado de la carga de datos para toda la interfaz. */
@@ -25,6 +73,8 @@ export type EstadoCarga =
   | { estado: 'listo'; datos: AnalisisTendencias }
 
 const TENDENCIAS_VALIDAS: Tendencia[] = ['alza', 'bajada']
+
+const cache = new Map<string, AnalisisTendencias>()
 
 function fallar(mensaje: string): never {
   throw new Error(mensaje)
@@ -95,9 +145,6 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
     fallar('El JSON de análisis no es un objeto válido.')
   }
   const d = datos as Record<string, unknown>
-  if (d.fuente !== 'mock') {
-    console.warn('[datos] El campo "fuente" no es "mock"; revisar origen real.')
-  }
   if (typeof d.variable !== 'string' || typeof d.nombre_variable !== 'string' || typeof d.unidad !== 'string') {
     fallar('El JSON de análisis no declara variable o unidad.')
   }
@@ -143,27 +190,31 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
   }
 }
 
-/** Lee y valida el JSON de análisis; lanza un error con mensaje claro. */
-export async function cargarAnalisis(): Promise<AnalisisTendencias> {
-  const respuestas = await Promise.all(
-    URLS_DATOS.map(async (url) => {
-      let respuesta: Response
-      try {
-        respuesta = await fetch(url)
-      } catch {
-        fallar(`No se pudo conectar para leer ${url}.`)
-      }
-      if (!respuesta.ok) {
-        fallar(`El JSON de análisis no se pudo leer (HTTP ${respuesta.status}): ${url}.`)
-      }
-      let datos: unknown
-      try {
-        datos = await respuesta.json()
-      } catch {
-        fallar(`El JSON de análisis no es válido: ${url}.`)
-      }
-      return validarAnalisis(datos)
-    })
-  )
-  return { ...respuestas[0], analisis: respuestas }
+/** Lee y valida el JSON de una variable; lanza un error con mensaje claro. */
+export async function cargarVariable(id: string): Promise<AnalisisTendencias> {
+  const entrada = CATALOGO.find((variable) => variable.id === id)
+  if (!entrada) {
+    fallar(`No hay ninguna variable registrada con el identificador "${id}".`)
+  }
+  const enCache = cache.get(id)
+  if (enCache) return enCache
+
+  let respuesta: Response
+  try {
+    respuesta = await fetch(entrada.url)
+  } catch {
+    fallar(`No se pudo conectar para leer ${entrada.url}.`)
+  }
+  if (!respuesta.ok) {
+    fallar(`El JSON de análisis no se pudo leer (HTTP ${respuesta.status}): ${entrada.url}.`)
+  }
+  let datos: unknown
+  try {
+    datos = await respuesta.json()
+  } catch {
+    fallar(`El JSON de análisis no es válido: ${entrada.url}.`)
+  }
+  const analizados = validarAnalisis(datos)
+  cache.set(id, analizados)
+  return analizados
 }

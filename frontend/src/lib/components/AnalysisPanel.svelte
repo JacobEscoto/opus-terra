@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { EstadoCarga } from '../data/loadAnalysis'
+  import type { VariableCatalogo } from '../data/loadAnalysis'
+  import VariableSelector from './VariableSelector.svelte'
+  import type { PreparacionCapa } from '../data/capa'
   import type { AnalisisTendencias, ParRegiones } from '../types/analysis'
   import Legend from './Legend.svelte'
   import PairList from './PairList.svelte'
@@ -13,6 +16,11 @@
     onSeleccionar: (id: string) => void
     onVolver: () => void
     onReintentar: () => void
+    variables: VariableCatalogo[]
+    variableActiva: string
+    variablesCargadas: string[]
+    preparacion: PreparacionCapa | null
+    onCambiarVariable: (id: string) => void
     capaVisible: boolean
     onAlternarCapa: () => void
   }
@@ -23,6 +31,11 @@
     onSeleccionar,
     onVolver,
     onReintentar,
+    variables,
+    variableActiva,
+    variablesCargadas,
+    preparacion,
+    onCambiarVariable,
     capaVisible,
     onAlternarCapa,
   }: Props = $props()
@@ -30,8 +43,6 @@
   let panelExpandido = $state(false)
 
   const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
-  const conjuntos = $derived(datos?.analisis ?? (datos ? [datos] : []))
-
   function esPromedioDeArea(conjunto: AnalisisTendencias): boolean {
     return conjunto.pixeles_probados === 0 && conjunto.limitacion?.includes('area-promedio') === true
   }
@@ -101,11 +112,23 @@
     </div>
   {:else if datos}
     <div class="panel__cuerpo">
+      <VariableSelector
+        variables={variables}
+        activa={variableActiva}
+        cargadas={variablesCargadas}
+        onCambiar={onCambiarVariable}
+      />
       <div class="capa-control">
         <div>
-          <strong class="capa-control__titulo">Marcadores T2M</strong>
+          <strong class="capa-control__titulo">Marcadores {datos.variable === 'mod13c2_ndvi' ? 'NDVI' : datos.variable}</strong>
           <p class="capa-control__texto">
-            Tendencia de temperatura 1996–2026 (MERRA-2), ajustada por ENSO. Celdas con tendencia significativa tras corrección FDR. Sin pares de contraste.
+            {#if preparacion && preparacion.significativas > 0}
+              {datos.variable === 'mod13c2_ndvi'
+                ? `Tendencia de vegetación (NDVI) ${datos.periodo.inicio}–${datos.periodo.fin}, MODIS, ajustada por ENSO. ${datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas tras corrección FDR. Sin pares de contraste.`
+                : `Tendencia de ${datos.nombre_variable} ${datos.periodo.inicio}–${datos.periodo.fin}, ajustada por ENSO. ${datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas tras corrección FDR. Sin pares de contraste.`}
+            {:else}
+              Sin celdas con tendencia significativa
+            {/if}
           </p>
         </div>
         <button type="button" class="capa-control__boton" onclick={onAlternarCapa} aria-pressed={capaVisible}>
@@ -113,53 +136,63 @@
         </button>
       </div>
       <Legend />
-      {#each conjuntos as conjunto (conjunto.variable)}
-        <article class="conjunto" aria-labelledby={`titulo-${conjunto.variable}`}>
-          <div class="conjunto__cabecera">
+      <article class="conjunto" aria-labelledby={`titulo-${datos.variable}`}>
+            <div class="conjunto__cabecera">
             <div>
-              <p class="conjunto__fuente">{conjunto.fuente}</p>
-              <h3 id={`titulo-${conjunto.variable}`}>{conjunto.nombre_variable}</h3>
+              <p class="conjunto__fuente">{datos.fuente}</p>
+              <h3 id={`titulo-${datos.variable}`}>{datos.nombre_variable}</h3>
             </div>
-            <span class="conjunto__periodo">{conjunto.periodo.inicio}–{conjunto.periodo.fin}</span>
+            <span class="conjunto__periodo">{datos.periodo.inicio}–{datos.periodo.fin}</span>
           </div>
 
-          {#if esPromedioDeArea(conjunto)}
+            {#if esPromedioDeArea(datos)}
             <div class="estado-datos estado-datos--area">
               <strong>Promedio de área: no hay análisis por píxel</strong>
-              <p>{conjunto.pixeles_probados} píxeles probados · {conjunto.pixeles_significativos_fdr} significativos</p>
+              <p>{datos.pixeles_probados} píxeles probados · {datos.pixeles_significativos_fdr} significativos</p>
             </div>
-          {:else if conjunto.pares.length === 0}
-            <div class="estado-datos">
-              <strong>Sin pares de tendencias opuestas significativas</strong>
-              <p>{conjunto.pixeles_probados} píxeles probados · {conjunto.pixeles_significativos_fdr} significativos tras FDR</p>
-            </div>
-          {:else}
-            <PairList
-              pares={conjunto.pares}
+            {:else if datos.pixeles_significativos_fdr === 0}
+              <div class="estado-datos">
+                <strong>Sin celdas con tendencia significativa</strong>
+                <p>{datos.pixeles_probados} píxeles probados · 0 significativos tras FDR</p>
+              </div>
+            {:else if datos.pares.length === 0}
+              <div class="estado-datos">
+                <strong>Sin pares de tendencias opuestas significativas</strong>
+                <p>{datos.pixeles_probados} píxeles probados · {datos.pixeles_significativos_fdr} significativos tras FDR</p>
+              </div>
+            {:else}
+              <PairList
+               pares={datos.pares}
               seleccionadoId={parSeleccionado?.id ?? null}
               onSeleccionar={onSeleccionar}
             />
           {/if}
 
-          {#if conjunto.fuente.includes('MERRA-2')}
+          {#if datos.fuente.includes('MERRA-2')}
             <p class="resolucion">Resolución MERRA-2: cada celda representa aproximadamente 0.5° × 0.625°.</p>
           {/if}
 
-          {#if conjunto.variable === 'merra2_t2m'}
+          {#if preparacion?.limitado}
+            <div class="estado-datos">
+              <strong>{preparacion.aviso}</strong>
+              <p>El JSON conserva las {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas.</p>
+            </div>
+          {/if}
+
+          {#if datos.variable === 'merra2_t2m' || datos.variable === 'mod13c2_ndvi'}
             <div class="celdas" aria-label="Celdas T2M significativas">
               <h4>Celdas significativas</h4>
-              {#each celdasSignificativas(conjunto) as pixel}
+               {#each (preparacion?.celdas ?? celdasSignificativas(datos)) as pixel}
                 <div class="celda">
                   <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span>
                   <span class={pixel.sen_unidad_por_anio > 0 ? 'celda--positiva' : pixel.sen_unidad_por_anio < 0 ? 'celda--negativa' : ''}>
-                    {pixel.sen_unidad_por_anio > 0 ? '+' : '−'}{Math.abs(pixel.sen_unidad_por_anio).toFixed(5)} °C/año
+                     {pixel.sen_unidad_por_anio > 0 ? '+' : '−'}{Math.abs(pixel.sen_unidad_por_anio).toFixed(5)} {datos.variable === 'mod13c2_ndvi' ? 'NDVI/año' : '°C/año'}
                   </span>
                 </div>
               {/each}
             </div>
           {/if}
         </article>
-      {/each}
     </div>
   {/if}
   </div>

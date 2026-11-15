@@ -3,15 +3,18 @@
   import EarthGlobe from './lib/components/EarthGlobe.svelte'
   import AnalysisPanel from './lib/components/AnalysisPanel.svelte'
   import TimelineControl from './lib/components/TimelineControl.svelte'
-  import { cargarAnalisis, type EstadoCarga } from './lib/data/loadAnalysis'
+  import { cargarVariable, CATALOGO, type EstadoCarga } from './lib/data/loadAnalysis'
+  import { prepararCapa, tieneValoresAnuales } from './lib/data/capa'
 
-  // El JSON (por ahora mock.json) es la única fuente de datos de la UI.
   let carga = $state<EstadoCarga>({ estado: 'cargando' })
+  let variableActiva = $state('merra2_t2m')
+  let variablesCargadas = $state<string[]>([])
+  let solicitud = 0
 
   /** Identificador del par elegido en la lista; null = vista de lista. */
   let idSeleccionado = $state<string | null>(null)
 
-  /** Año activo en la línea de tiempo (aún no filtra la vista). */
+  /** Año mostrado en el panel cuando existan series anuales por celda. */
   let anio = $state<number>(2023)
   let capaTendenciaVisible = $state(true)
 
@@ -25,22 +28,30 @@
 
   const desplazamiento = $derived(escritorio ? -0.17 : 0)
 
-  // Par completo correspondiente al identificador elegido.
+  const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
+  const preparacion = $derived(datos ? prepararCapa(datos) : null)
+  const anualesDisponibles = $derived(datos ? tieneValoresAnuales(datos) : false)
+
   const parSeleccionado = $derived(
-    carga.estado === 'listo'
-      ? carga.datos.pares.find((par) => par.id === idSeleccionado) ?? null
+    datos
+      ? datos.pares.find((par) => par.id === idSeleccionado) ?? null
       : null
   )
 
-  /** Lee el JSON de análisis y actualiza el estado global de la interfaz. */
-  async function cargar() {
+  /** Lee el JSON seleccionado y reemplaza la capa sin crear otra escena. */
+  async function cambiarVariable(id: string) {
+    const numeroSolicitud = ++solicitud
+    variableActiva = id
     carga = { estado: 'cargando' }
     idSeleccionado = null
     try {
-      const datos = await cargarAnalisis()
-      carga = { estado: 'listo', datos }
-      anio = datos.periodo.fin
+      const resultado = await cargarVariable(id)
+      if (numeroSolicitud !== solicitud) return
+      if (!variablesCargadas.includes(id)) variablesCargadas = [...variablesCargadas, id]
+      carga = { estado: 'listo', datos: resultado }
+      anio = resultado.periodo.fin
     } catch (error: unknown) {
+      if (numeroSolicitud !== solicitud) return
       carga = {
         estado: 'error',
         mensaje:
@@ -51,8 +62,12 @@
     }
   }
 
+  function cargar() {
+    void cambiarVariable(variableActiva)
+  }
+
   onMount(() => {
-    void cargar()
+    void cambiarVariable(variableActiva)
 
     // Sincroniza el desplazamiento del planeta con el punto de quiebre del layout.
     const consulta = window.matchMedia('(min-width: 1000px)')
@@ -76,7 +91,7 @@
   <EarthGlobe
     horizontalOffset={desplazamiento}
     dataMode={parSeleccionado !== null}
-    celdas={carga.estado === 'listo' ? carga.datos.resultados_pixeles : []}
+    celdas={preparacion?.celdas ?? []}
     capaVisible={capaTendenciaVisible}
   />
 
@@ -88,11 +103,13 @@
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
     <div class="timeline-slot">
-      {#if carga.estado === 'listo'}
+      {#if datos}
         <TimelineControl
-          inicio={carga.datos.periodo.inicio}
-          fin={carga.datos.periodo.fin}
-          bind:anio
+           inicio={datos.periodo.inicio}
+           fin={datos.periodo.fin}
+           bind:anio
+           disponible={anualesDisponibles}
+           aviso="Vista por año disponible en una versión futura"
         />
       {/if}
     </div>
@@ -107,6 +124,11 @@
         onSeleccionar={(id) => (idSeleccionado = id)}
           onVolver={() => (idSeleccionado = null)}
           onReintentar={cargar}
+          variables={CATALOGO}
+          variableActiva={variableActiva}
+          variablesCargadas={variablesCargadas}
+          preparacion={preparacion}
+          onCambiarVariable={(id) => void cambiarVariable(id)}
           capaVisible={capaTendenciaVisible}
           onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
         />

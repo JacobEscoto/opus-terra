@@ -6,14 +6,18 @@
     fin: number
     /** Año activo; enlazado con App. Por ahora solo se muestra. */
     anio: number
+    /** El JSON de la variable trae valores por año y por celda. */
+    disponible: boolean
+    /** Aviso cuando no hay datos anuales que mostrar. */
+    aviso?: string
   }
 
-  let { inicio, fin, anio = $bindable() }: Props = $props()
+  let { inicio, fin, anio = $bindable(), disponible, aviso }: Props = $props()
 </script>
 
-<!-- Control de línea de tiempo: preparado para filtrar la vista del globo.
-     Hoy solo muestra el año seleccionado; el resto de la UI puede usar
-     `anio` cuando existan datos por año. -->
+<!-- Control de línea de tiempo: solo filtra la vista si el JSON de la variable
+     trae valores por año y por celda. Hoy ningún JSON los trae, así que el
+     deslizador queda desactivado en lugar de fingir un cambio por año. -->
 <div class="timeline">
   <div class="timeline__cabeza">
     <label class="timeline__etiqueta" for="timeline-anio">Línea de tiempo</label>
@@ -28,11 +32,15 @@
       max={fin}
       step="1"
       bind:value={anio}
+      disabled={!disponible}
       aria-label="Año seleccionado"
       aria-valuetext={`Año ${anio}`}
     />
     <span class="timeline__valor">{fin}</span>
   </div>
+  {#if !disponible}
+    <p class="timeline__aviso">{aviso ?? 'Vista por año disponible en una versión futura'}</p>
+  {/if}
 </div>
 
 <style>
@@ -78,5 +86,16 @@
   input[type='range'] {
     flex: 1;
     accent-color: var(--blue);
+  }
+
+  input[type='range']:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .timeline__aviso {
+    margin: 0;
+    font: 10px/1.5 var(--mono);
+    color: var(--faint);
   }
 </style>
