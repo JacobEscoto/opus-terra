@@ -54,6 +54,14 @@
 
   const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
   const anios = $derived(datos ? aniosDelPeriodo(datos) : 0)
+  const aniosCompletos = $derived(datos?.periodo.anios_completos?.length ?? anios)
+
+  function pendienteDe(region: ParRegiones['region_a']): number | null {
+    const resultado = datos?.resultados_pixeles.find(
+      (pixel) => pixel.lat === region.lat && pixel.lon === region.lon,
+    )
+    return resultado?.sen_unidad_por_anio ?? null
+  }
 
   function esPromedioDeArea(conjunto: AnalisisTendencias): boolean {
     return conjunto.pixeles_probados === 0 && conjunto.limitacion?.includes('area-promedio') === true
@@ -77,7 +85,7 @@
   /** Acumulado del periodo: «≈ +0.68 °C en 24 años». */
   function cambioAcumulado(pendiente: number, anios: number): string {
     const unidad = unidadLegible(datos?.unidad ?? '')
-    return `≈ ${signo(pendiente)}${Math.abs(pendiente * anios).toFixed(2)} ${unidad} en ${anios} años`
+    return `≈ ${signo(pendiente)}${Math.abs(pendiente * Math.max(anios - 1, 0)).toFixed(2)} ${unidad} en ${anios} años`
   }
 </script>
 
@@ -119,7 +127,7 @@
       <div class="estado__barra"><span></span></div>
     </div>
   {:else if carga.estado === 'error'}
-    <div class="estado estado--error" role="alert">
+      <div class="estado estado--error" role="status">
       <p>{carga.mensaje}</p>
       <button type="button" class="estado__reintentar" onclick={onReintentar}>Reintentar</button>
     </div>
@@ -132,17 +140,17 @@
       <div class="detalle__regiones">
         <RegionCard
           region={parSeleccionado.region_a}
-           etiqueta="Zona A"
-           unidad={datos.unidad}
-           contextoOms={datos.contexto_oms}
-           fuente={datos.fuente}
+          unidad={datos.unidad}
+          fuente={datos.fuente}
+          pendiente={pendienteDe(parSeleccionado.region_a)}
+          anios={aniosCompletos}
         />
         <RegionCard
           region={parSeleccionado.region_b}
-           etiqueta="Zona B"
-           unidad={datos.unidad}
-           contextoOms={datos.contexto_oms}
-           fuente={datos.fuente}
+          unidad={datos.unidad}
+          fuente={datos.fuente}
+          pendiente={pendienteDe(parSeleccionado.region_b)}
+          anios={aniosCompletos}
         />
       </div>
     </div>
@@ -184,17 +192,17 @@
             {#if esPromedioDeArea(datos)}
             <div class="estado-datos estado-datos--area">
                <strong>Promedio de área: no hay análisis por celdas</strong>
-              <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas</p>
+                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} con cambio claro</p>
             </div>
             {:else if datos.pixeles_significativos_fdr === 0}
               <div class="estado-datos">
-                <strong>Sin celdas con tendencia significativa</strong>
-                <p>zonas analizadas: {datos.pixeles_probados} · 0 significativas tras FDR</p>
+                <strong>Sin zonas con cambio claro</strong>
+              <p>zonas analizadas: {datos.pixeles_probados} · 0 con cambio claro</p>
               </div>
             {:else if datos.pares.length === 0}
               <div class="estado-datos">
-                <strong>Sin pares de tendencias opuestas significativas</strong>
-                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas tras FDR</p>
+                <strong>Sin pares de tendencias opuestas claras</strong>
+                <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} con cambio claro</p>
               </div>
             {:else}
               <div class="recorrido-control">
@@ -208,15 +216,18 @@
               </div>
               <PairList
                pares={datos.pares}
-              seleccionadoId={parSeleccionado?.id ?? null}
-              onSeleccionar={onSeleccionar}
-            />
+               seleccionadoId={parSeleccionado?.id ?? null}
+               onSeleccionar={onSeleccionar}
+               resultados={datos.resultados_pixeles}
+               unidad={datos.unidad}
+               anios={aniosCompletos}
+             />
           {/if}
 
           {#if preparacion?.limitado}
             <div class="estado-datos">
               <strong>{preparacion.aviso}</strong>
-              <p>El JSON conserva las {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} celdas significativas.</p>
+               <p>El JSON conserva las {datos.pixeles_significativos_fdr.toLocaleString('es-ES')} zonas con cambio claro.</p>
             </div>
           {/if}
 

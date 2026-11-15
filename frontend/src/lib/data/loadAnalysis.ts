@@ -171,9 +171,6 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
   ) {
     fallar('El JSON de análisis no declara un periodo válido.')
   }
-  if (typeof d.contexto_oms !== 'string') {
-    fallar('El JSON de análisis no incluye el contexto de la OMS.')
-  }
   if (!Number.isInteger(d.pixeles_probados) || (d.pixeles_probados as number) < 0) {
     fallar('El JSON de análisis no declara un número válido de celdas probadas.')
   }
@@ -198,7 +195,7 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
     nombre_variable: d.nombre_variable as string,
     unidad: d.unidad as string,
     periodo: d.periodo as AnalisisTendencias['periodo'],
-    contexto_oms: d.contexto_oms as string,
+    ...(typeof d.contexto_oms === 'string' ? { contexto_oms: d.contexto_oms } : {}),
     pares: d.pares.map(validarPar),
     pixeles_probados: d.pixeles_probados as number,
     pixeles_significativos_fdr: d.pixeles_significativos_fdr as number,

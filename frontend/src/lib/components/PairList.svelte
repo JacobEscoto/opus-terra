@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { ParRegiones } from '../types/analysis'
+  import type { ParRegiones, ResultadoPixel } from '../types/analysis'
+  import { unidadLegible } from '../data/capa'
   import TrendMark from './TrendMark.svelte'
 
   interface Props {
@@ -7,19 +8,41 @@
     /** Identificador del par resaltado (null = ninguno). */
     seleccionadoId: string | null
     onSeleccionar: (id: string) => void
+    resultados: ResultadoPixel[]
+    unidad: string
+    anios: number
   }
 
-  let { pares, seleccionadoId, onSeleccionar }: Props = $props()
+  let { pares, seleccionadoId, onSeleccionar, resultados, unidad, anios }: Props = $props()
+  let cantidadVisible = $state(80)
+  let referenciaPares: ParRegiones[] | null = null
 
-  function num(valor: number): string {
-    return `${valor > 0 ? '+' : ''}${valor.toFixed(1)}`
+  $effect(() => {
+    if (pares !== referenciaPares) {
+      referenciaPares = pares
+      cantidadVisible = 80
+    }
+  })
+
+  const pendientes = $derived(
+    new Map(resultados.map((pixel) => [`${pixel.lat}:${pixel.lon}`, pixel.sen_unidad_por_anio])),
+  )
+  const paresVisibles = $derived(pares.slice(0, cantidadVisible))
+
+  function pendienteDe(region: ParRegiones['region_a']): number | null {
+    return pendientes.get(`${region.lat}:${region.lon}`) ?? null
+  }
+
+  function cambio(region: ParRegiones['region_a']): string {
+    const pendiente = pendienteDe(region)
+    if (pendiente === null) return 'Cambio no disponible'
+    const acumulado = pendiente * Math.max(anios - 1, 0)
+    return `${acumulado > 0 ? '+' : ''}${acumulado.toFixed(1)} ${unidadLegible(unidad)} en ${anios} años`
   }
 </script>
 
-<!-- Lista de pares: filas separadas por hairlines, con riel ámbar en la
-     activa. Los pares sin señal significativa llevan insignia rayada. -->
 <ul class="pares">
-  {#each pares as par, indice (par.id)}
+  {#each paresVisibles as par, indice (par.id)}
     <li>
       <button
         type="button"
@@ -31,28 +54,27 @@
         <span class="par__num" aria-hidden="true">{String(indice + 1).padStart(2, '0')}</span>
         <span class="par__cuerpo">
           <span class="par__fila">
-            <TrendMark tendencia={par.region_a.tendencia} significativa={par.region_a.significativa} />
             <span class="par__nombre">{par.region_a.nombre}</span>
-            {#if !par.region_a.significativa}
-              <span class="insignia-neutra">No significativa</span>
-            {/if}
+            <TrendMark tendencia={par.region_a.tendencia} significativa={par.region_a.significativa} conTexto />
+            <span class="par__cambio">{cambio(par.region_a)}</span>
           </span>
           <span class="par__fila">
-            <TrendMark tendencia={par.region_b.tendencia} significativa={par.region_b.significativa} />
             <span class="par__nombre">{par.region_b.nombre}</span>
-            {#if !par.region_b.significativa}
-              <span class="insignia-neutra">No significativa</span>
-            {/if}
+            <TrendMark tendencia={par.region_b.tendencia} significativa={par.region_b.significativa} conTexto />
+            <span class="par__cambio">{cambio(par.region_b)}</span>
           </span>
-        </span>
-        <span class="par__cambios">
-          <span class="par__cambio">{num(par.region_a.cambio_porcentual)} %</span>
-          <span class="par__cambio">{num(par.region_b.cambio_porcentual)} %</span>
         </span>
       </button>
     </li>
   {/each}
 </ul>
+
+{#if cantidadVisible < pares.length}
+  <div class="pares__mas">
+    <p>Mostrando {cantidadVisible} de {pares.length} comparaciones.</p>
+    <button type="button" onclick={() => (cantidadVisible += 80)}>Mostrar más</button>
+  </div>
+{/if}
 
 <style>
   .pares {
@@ -115,7 +137,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-width: 0;
   }
 
@@ -129,18 +151,29 @@
     flex: 1 1 auto;
   }
 
-  /* Lecturas alineadas a la derecha, como en un panel de instrumento: una
-     por región, en el mismo orden que las filas. */
-  .par__cambios {
-    display: grid;
-    gap: 7px;
-    padding-top: 1px;
-    text-align: right;
-  }
-
   .par__cambio {
-    font: 500 11px var(--mono);
+    width: 100%;
+    font: 11px var(--mono);
     color: var(--muted);
     white-space: nowrap;
+  }
+
+  .pares__mas {
+    display: grid;
+    gap: 8px;
+    padding: 14px 4px;
+    color: var(--muted);
+    font: 10px var(--mono);
+  }
+
+  .pares__mas p { margin: 0; }
+
+  .pares__mas button {
+    justify-self: start;
+    padding: 7px 10px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
   }
 </style>

@@ -109,14 +109,13 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
     valores_anuales: pixel.valores_anuales,
   }))
   const limitado = significativas.length > MAXIMO_CELDAS_CAPA
-  const valoresAnuales = significativas.flatMap((pixel) => pixel.valores_anuales ?? [])
-  const valoresEscala = valoresAnuales.length
-    ? valoresAnuales
-    : significativas.map((pixel) => pixel.sen_unidad_por_anio)
-  const escalaMaxima = valoresEscala.reduce(
-    (maximo, valor) => (Number.isFinite(valor) ? Math.max(maximo, Math.abs(valor)) : maximo),
-    0,
-  )
+  let escalaMaxima = 0
+  for (const pixel of significativas) {
+    const valores = pixel.valores_anuales ?? [pixel.sen_unidad_por_anio]
+    for (const valor of valores) {
+      if (Number.isFinite(valor)) escalaMaxima = Math.max(escalaMaxima, Math.abs(valor))
+    }
+  }
   return {
     celdas,
     significativas: significativas.length,

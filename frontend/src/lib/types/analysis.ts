@@ -19,9 +19,9 @@ export interface RegionAnalizada {
   tendencia: Tendencia
   /** Cambio relativo acumulado en el periodo, en porcentaje. */
   cambio_porcentual: number
-  /** ¿El cambio es estadísticamente significativo? */
+  /** ¿El cambio es claro según la comprobación estadística? */
   significativa: boolean
-  /** Explicación en lenguaje sencillo, sin diagnósticos. */
+  /** Explicación disponible en el contrato; la interfaz usa su propio texto. */
   explicacion: string
 }
 
@@ -71,8 +71,8 @@ export interface AnalisisTendencias {
   unidad: string
   /** Años cubiertos por el análisis. */
   periodo: PeriodoAnalisis
-  /** Contexto general de la OMS para la variable, sin diagnósticos. */
-  contexto_oms: string
+  /** Contexto heredado del contrato; no se muestra en la interfaz. */
+  contexto_oms?: string
   /** Pares de regiones propuestos por el análisis. */
   pares: ParRegiones[]
   /** Número de celdas evaluadas estadísticamente. */

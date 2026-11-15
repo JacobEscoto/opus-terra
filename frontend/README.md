@@ -55,7 +55,7 @@ Estructura del `mock.json`:
 - **`nombre_variable`**: Nombre legible mostrado en la UI.
 - **`unidad`**: Unidad de medida (ej. `"mg/m³"`).
 - **`periodo`**: Intervalo de años cubierto por los datos `{ inicio, fin }`.
-- **`contexto_oms`**: Texto de contexto sobre salud, según guías de la Organización Mundial de la Salud. Esto se muestra en el panel lateral cuando se selecciona un par.
+- **`contexto_oms`**: Campo opcional heredado por compatibilidad. La interfaz no lo muestra.
 - **`pares`**: Array de pares de regiones con tendencias contrastantes. Cada par tiene:
   - `id`: identificador único para seleccionar el par.
   - `region_a` y `region_b`: objetos con `nombre`, `lat`, `lon`, `tendencia` ( `"alza"` o `"bajada"`), `cambio_porcentual`, `significativa` (booleano) y `explicacion` (texto corto).

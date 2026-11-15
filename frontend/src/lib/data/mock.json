@@ -4,7 +4,7 @@
   "nombre_variable": "Clorofila-a superficial",
   "unidad": "mg/m³",
   "periodo": { "inicio": 2003, "fin": 2023 },
-  "contexto_oms": "Como contexto: la OMS destaca que la disponibilidad de agua limpia y la vigilancia de las floraciones de algas nocivas forman parte del cuidado de la salud de las personas y de los ecosistemas de los que dependen las comunidades costeras. Esta información es ambiental y no constituye un diagnóstico.",
+  "contexto_oms": "Información ambiental; no es un diagnóstico de salud.",
   "pares": [
     {
       "id": "benguela-guinea",

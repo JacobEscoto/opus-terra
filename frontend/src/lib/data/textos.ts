@@ -1,5 +1,4 @@
 export const NAVEGACION = {
-  metodologia: "Metodología",
   glosario: "Glosario",
   acerca: "Acerca de",
   volver: "Volver al mapa",
@@ -15,7 +14,12 @@ export const APP = {
   ayudaTitulo: "Un mapa para mirar cambios",
   ayudaTexto:
     "OpusTerra reúne observaciones satelitales y modelos climáticos para ayudarte a explorar dónde cambian la temperatura, la lluvia y la vegetación.",
-  avisoSinSerie: "Esta variable no incluye una serie anual por celda.",
+  avisoSinSerie: "Esta variable no incluye una serie anual por zona.",
+} as const;
+
+export const EXPLICACIONES = {
+  cambioClaro:
+    "Cambio claro: es poco probable que sea casualidad, porque se mantiene aun después de descartar señales falsas.",
 } as const;
 
 export const LEYENDA = {
@@ -33,56 +37,7 @@ export const LEYENDA = {
 
 export const AYUDA_MAPA = {
   titulo: "Un mapa para mirar cambios",
-  enlaces: [
-    { href: "#metodologia", texto: NAVEGACION.metodologia },
-    { href: "#glosario", texto: NAVEGACION.glosario },
-  ],
-} as const;
-
-export const METODOLOGIA = {
-  titulo: NAVEGACION.metodologia,
-  introduccion:
-    "Cómo pasamos de muchas mediciones a un mapa que se puede explorar.",
-  secciones: [
-    {
-      titulo: "Qué medimos",
-      parrafos: [
-        "Medimos la temperatura del aire a 2 metros, la lluvia y la vegetación. La temperatura es el calor del aire cerca de la superficie; la lluvia es el agua que cae; y el índice NDVI es una medida de qué tan verde y activa está la vegetación.",
-      ],
-    },
-    {
-      titulo: "Cómo limpiamos los datos",
-      parrafos: [
-        "Quitamos la variación normal de cada mes del año y el efecto de El Niño y La Niña. Para hacerlo usamos el índice ONI, una medida de la temperatura del océano Pacífico que publican NOAA y KNMI.",
-      ],
-    },
-    {
-      titulo: "Cómo buscamos tendencias",
-      parrafos: [
-        "Usamos un valor por cada año completo, de 2001 a 2024, para cada zona. La prueba de Mann-Kendall comprueba si la dirección del cambio se mantiene de forma constante; el estimador de Sen calcula el ritmo de ese cambio.",
-      ],
-    },
-    {
-      titulo: "Cómo evitamos falsas señales",
-      parrafos: [
-        "Cuando miramos miles de zonas, algunas pueden parecer cambiar por azar. Solo marcamos como «cambio claro» lo que sobrevive una corrección estadística de Benjamini-Hochberg, que controla cuántas señales falsas aceptamos.",
-      ],
-    },
-    {
-      titulo: "Qué no hace la app",
-      parrafos: [
-        "No predice, no emite alertas y no diagnostica problemas de salud ni peligros. Es una herramienta para explorar tendencias de largo plazo.",
-      ],
-    },
-    {
-      titulo: "Límites",
-      parrafos: [
-        "Cada zona de MERRA-2 mide unos 55 × 70 km y cada zona de MODIS unos 5 km. La precipitación solo tiene un promedio de toda el área, sin un mapa por zonas.",
-        "En vegetación, descartamos las celdas con nubes o datos no confiables. Un cambio en NDVI no significa necesariamente un cambio de cobertura vegetal.",
-        "El análisis termina en 2024 porque GPM no tiene datos completos de 2025. Los nombres de lugares son aproximados: indican algo que está «cerca de» ese lugar.",
-      ],
-    },
-  ],
+  enlaces: [{ href: "#glosario", texto: NAVEGACION.glosario }],
 } as const;
 
 export const GLOSARIO = {
@@ -96,7 +51,7 @@ export const GLOSARIO = {
     ],
     [
       "Cambio claro",
-      "Cambio cuya señal es suficientemente consistente para que sea poco probable que se deba al azar, después de la corrección estadística.",
+      "Cambio cuya señal es suficientemente consistente para que sea poco probable que se deba al azar.",
     ],
     [
       "Ritmo de cambio (pendiente)",
@@ -145,16 +100,39 @@ export const ACERCA = {
   titulo: NAVEGACION.acerca,
   parrafos: [
     "OpusTerra es una herramienta desarrollada por Pegaso-X en Honduras para el reto NASA Space Apps Challenge 2026: «Be An Earth System Trend Detective».",
-    "Reúne información ambiental para ayudar a explorar tendencias de largo plazo. La información es ambiental; no es un diagnóstico de salud.",
+    "Reúne información ambiental para ayudar a explorar tendencias de largo plazo.",
   ],
   fuentesTitulo: "Fuentes",
   fuentes: [
-    "NASA GPM IMERG. GPM_3IMERGM. Versión 07. Goddard Space Flight Center. https://cmr.earthdata.nasa.gov/search/granules?short_name=GPM_3IMERGM",
-    "NASA MERRA-2. M2TMNXFLX y M2TMNXSLV. Versión 5.12.4. Goddard Space Flight Center. https://cmr.earthdata.nasa.gov/search/granules?short_name=M2TMNXFLX",
-    "NASA MODIS. MOD13C2. Versión 061. Goddard Space Flight Center. https://cmr.earthdata.nasa.gov/search/granules?short_name=MOD13C2",
+    {
+      texto: "NASA GPM IMERG · GPM_3IMERGM · versión 07",
+      url: "https://cmr.earthdata.nasa.gov/search/granules?short_name=GPM_3IMERGM",
+    },
+    {
+      texto: "NASA MERRA-2 · M2TMNXFLX y M2TMNXSLV · versión 5.12.4",
+      url: "https://cmr.earthdata.nasa.gov/search/granules?short_name=M2TMNXFLX",
+    },
+    {
+      texto: "NASA MODIS · MOD13C2 · versión 061",
+      url: "https://cmr.earthdata.nasa.gov/search/granules?short_name=MOD13C2",
+    },
   ],
-  fuenteOni: "NOAA/KNMI (ONI).",
-  licencia: "Licencia MIT (ver LICENSE).",
-  integrantes: "[Completar: nombres del equipo]",
+  fuenteOni: {
+    texto: "NOAA/KNMI · índice ONI",
+    url: "https://www.cpc.ncep.noaa.gov/data/indices/",
+  },
+  licencia: {
+    texto: "Licencia MIT",
+    url: "https://github.com/JacobEscoto/opus-terra/blob/main/LICENSE",
+  },
+  aviso: "Información ambiental; no es un diagnóstico de salud.",
+  integrantes: [
+    "Dana Ruiz",
+    "Rose Hernández",
+    "Nahomy Acosta",
+    "Jacob Escoto",
+    "José Ortiz",
+    "Susan Flores",
+  ],
   integrantesTitulo: "Integrantes",
 } as const;

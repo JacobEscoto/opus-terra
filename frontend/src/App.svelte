@@ -7,7 +7,6 @@
   import { prepararCapa, tieneValoresAnuales } from './lib/data/capa'
   import type { ParRegiones } from './lib/types/analysis'
   import GlobeLegend from './lib/components/GlobeLegend.svelte'
-  import Metodologia from './lib/components/paginas/Metodologia.svelte'
   import Glosario from './lib/components/paginas/Glosario.svelte'
   import AcercaDe from './lib/components/paginas/AcercaDe.svelte'
   import { APP, AYUDA_MAPA, NAVEGACION } from './lib/data/textos'
@@ -34,7 +33,7 @@
   let timerRecorrido: ReturnType<typeof setTimeout> | null = null
   let recorridoToken = 0
   let enfoqueInicialHecho = false
-  type Pagina = 'metodologia' | 'glosario' | 'acerca'
+  type Pagina = 'glosario' | 'acerca'
   let pagina = $state<Pagina | null>(null)
   let enlaceQueAbrioPagina = $state<HTMLElement | null>(null)
   let menuAbierto = $state(false)
@@ -61,7 +60,7 @@
 
   function paginaDesdeHash() {
     const hash = window.location.hash.slice(1)
-    pagina = hash === 'metodologia' || hash === 'glosario' || hash === 'acerca' ? hash : null
+    pagina = hash === 'glosario' || hash === 'acerca' ? hash : null
   }
 
   function abrirPagina(nombre: Pagina, evento?: MouseEvent) {
@@ -239,9 +238,8 @@
 
   {#if menuAbierto}
     <div id="site-menu" class="site-menu" role="dialog" aria-label={NAVEGACION.menu}>
-      <nav aria-label="Secciones del sitio">
-        <a href="#metodologia" onclick={(evento) => abrirPagina('metodologia', evento)}>{NAVEGACION.metodologia}</a>
-        <a href="#glosario" onclick={(evento) => abrirPagina('glosario', evento)}>{NAVEGACION.glosario}</a>
+       <nav aria-label="Secciones del sitio">
+         <a href="#glosario" onclick={(evento) => abrirPagina('glosario', evento)}>{NAVEGACION.glosario}</a>
         <a href="#acerca" onclick={(evento) => abrirPagina('acerca', evento)}>{NAVEGACION.acerca}</a>
       </nav>
       <button class="about-button" type="button" aria-expanded={mostrarAyuda} aria-controls="about-panel" onclick={() => (mostrarAyuda = !mostrarAyuda)}>{NAVEGACION.comoLeer}</button>
@@ -300,9 +298,11 @@
 
 </main>
 
+<footer class="site-footer">© {new Date().getFullYear()} Pegaso-X</footer>
+
 {#if pagina}
   <div class="page-layer" role="dialog" aria-modal="true">
-    {#if pagina === 'metodologia'}<Metodologia onCerrar={() => cerrarPagina()} />{:else if pagina === 'glosario'}<Glosario onCerrar={() => cerrarPagina()} />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
+    {#if pagina === 'glosario'}<Glosario onCerrar={() => cerrarPagina()} />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
   </div>
 {/if}
 
@@ -357,6 +357,7 @@
   .timeline-slot { display: grid; gap: 10px; align-items: end; }
   .legend-slot { pointer-events: auto; }
   .page-layer { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--bg); pointer-events: auto; }
+  .site-footer { position: fixed; right: 20px; bottom: 12px; z-index: 3; color: var(--faint); font: 10px var(--mono); pointer-events: none; }
 
   /* Columna única: panel debajo del masthead, línea de tiempo al final. */
   @media (max-width: 899px) {

@@ -54,6 +54,21 @@ opendap_margin_degrees = 0.5
 estimated_opendap_kb_per_file = 1.5
 plausible_range = [150.0, 350.0]
 
+[products.merra2_aer]
+short_name = "M2TMNXAER"
+version = "5.12.4"
+main_variable = "DUSMASS25"
+auxiliary_variables = []
+resolution = "0.625 grados lon x 0.5 grados lat"
+frequency = "monthly"
+coverage_start = "1980-01-01"
+coverage_end = "2026-09-30"
+native_format = "NetCDF4"
+output_folder = "merra2_aer"
+estimated_file_size_mb = 80.0
+estimated_opendap_kb_per_file = 2.0
+opendap_margin_degrees = 0.5
+
 [products.mod13c2]
 short_name = "MOD13C2"
 version = "061"

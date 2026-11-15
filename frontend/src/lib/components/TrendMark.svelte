@@ -21,7 +21,7 @@
   /** Descripción para lectores de pantalla: color + forma + texto. */
   const descripcion = $derived(
     significativa
-      ? `Tendencia al ${tendencia === 'alza' ? 'alza' : 'baja'}, cambio significativo`
+       ? `Tendencia al ${tendencia === 'alza' ? 'alza' : 'baja'}, cambio claro`
        : 'Cambio poco claro'
   )
 </script>

@@ -71,6 +71,7 @@ def _base(
     region: Region,
     *,
     limitacion: str | None = None,
+    contexto: str | None = None,
 ) -> dict:
     resultado = {
         "fuente": fuente,
@@ -80,7 +81,7 @@ def _base(
         "nombre_variable": nombre,
         "unidad": unidad,
         "periodo": {"inicio": periodo[0], "fin": periodo[1]},
-        "contexto_oms": "Análisis ambiental; no constituye un diagnóstico de salud.",
+        "contexto_oms": contexto or "Análisis ambiental; no constituye un diagnóstico de salud.",
         "pares": [],
         "pixeles_probados": 0,
         "pixeles_significativos_fdr": 0,
@@ -164,6 +165,31 @@ def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
     return xr.concat(partes, dim="time").assign_coords(time=esperados.to_timestamp())
 
 
+def _cargar_malla_aer(raw: Path) -> xr.DataArray:
+    rutas = sorted((raw / "merra2_aer").glob("*.nc"))
+    por_mes: dict[pd.Period, Path] = {}
+    for ruta in rutas:
+        coincidencia = re.search(r"\.(\d{6})(?:_[^.]+)?\.nc$", ruta.name)
+        if not coincidencia:
+            continue
+        mes = pd.Period(coincidencia.group(1), freq="M")
+        if INICIO <= mes <= FIN:
+            anterior = por_mes.get(mes)
+            if anterior is None or ruta.name.split(".")[0] > anterior.name.split(".")[0]:
+                por_mes[mes] = ruta
+    esperados = pd.period_range(INICIO, FIN, freq="M")
+    faltantes = [str(mes) for mes in esperados if mes not in por_mes]
+    if faltantes:
+        raise RuntimeError(f"Faltan meses MERRA-2 DUSMASS25 en la ventana efectiva: {', '.join(faltantes)}")
+    partes = []
+    for mes in esperados:
+        with xr.open_dataset(por_mes[mes]) as dataset:
+            if "DUSMASS25" not in dataset.variables:
+                raise ValueError(f"No se encontró DUSMASS25 en {por_mes[mes].name}")
+            partes.append(dataset["DUSMASS25"].load())
+    return xr.concat(partes, dim="time").assign_coords(time=esperados.to_timestamp())
+
+
 def _analizar_malla(
     da: xr.DataArray,
     nombre: str,
@@ -172,10 +198,18 @@ def _analizar_malla(
     region: Region,
     calidad: dict | None = None,
     limitacion: str | None = None,
+    contexto: str | None = None,
 ) -> dict:
     if nombre[0] == "merra2_t2m":
         da = da - 273.15
         da.attrs["units"] = "degC"
+    elif nombre[0] == "merra2_aer":
+        unidad_original = da.attrs.get("units", "")
+        if unidad_original == "kg m-3":
+            da = da * 1e9
+            da.attrs["units_original"] = unidad_original
+            da.attrs["conversion"] = "multiplicación por 1e9: kg m-3 a µg/m³"
+            da.attrs["units"] = "µg/m³"
     da = da.sel(time=slice(INICIO.start_time, FIN.end_time))
     climatologia = da.groupby("time.month").mean("time")
     anomalia = da.groupby("time.month") - climatologia
@@ -230,7 +264,8 @@ def _analizar_malla(
         registro["significativa_fdr"] = bool(significativa)
     significativos = [registro for registro in registros if registro["significativa_fdr"]]
     resultado = _base(
-        fuente, nombre[0], nombre[1], unidad, (anios[0], anios[-1]), region, limitacion=limitacion
+        fuente, nombre[0], nombre[1], unidad, (anios[0], anios[-1]), region,
+        limitacion=limitacion, contexto=contexto,
     )
     resultado["pixeles_probados"] = len(registros)
     resultado["pixeles_significativos_fdr"] = len(significativos)
@@ -241,6 +276,10 @@ def _analizar_malla(
     resultado["periodo"]["meses"] = int(len(fechas))
     resultado["periodo"]["anios_completos"] = anios
     resultado["fdr"]["p_valores_probados"] = len(pvalores)
+    if nombre[0] == "merra2_aer":
+        resultado["metodologia"]["conversion_unidades"] = (
+            "DUSMASS25 convertida de kg m-3 a µg/m³ multiplicando por 1e9"
+        )
     if calidad is not None:
         calidad = {**calidad, "celdas_descartadas_por_calidad": celdas_descartadas}
         resultado["calidad"] = calidad
@@ -369,17 +408,27 @@ def main() -> None:
         region,
     )
     ndvi = _analizar_malla_mod13c2(raw, region)
+    aerosoles = _analizar_malla(
+        _cargar_malla_aer(raw),
+        ("merra2_aer", "Partículas en suspensión PM2.5 en superficie"),
+        "µg/m³",
+        "NASA MERRA-2 M2TMNXAER v5.12.4 (DUSMASS25)",
+        region=region,
+        contexto="Partículas en suspensión estimadas por el modelo MERRA-2; no es una medición de salud",
+    )
     _actualizar_regiones(region, [
         "merra2_t2m",
         "merra2_precipitacion",
         "imerg_precipitacion",
         "mod13c2_ndvi",
+        "merra2_aer",
     ])
     for nombre, contenido in (
         ("merra2_t2m.json", t2m),
         ("merra2_precipitacion.json", precipitacion_merra),
         ("imerg_precipitacion.json", imerg),
         ("mod13c2_ndvi.json", ndvi),
+        ("merra2_aer.json", aerosoles),
     ):
         ruta_salida = output / nombre
         tamano_anterior = ruta_salida.stat().st_size if ruta_salida.exists() else 0
