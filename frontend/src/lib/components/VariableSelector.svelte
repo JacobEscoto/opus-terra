@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { VariableCatalogo } from '../data/loadAnalysis'
 
-  interface Props {
+  interface PropiedadesComponente {
     /** Variables disponibles en el catálogo. */
     variables: VariableCatalogo[]
     /** Identificador de la variable activa. */
@@ -11,7 +11,7 @@
     onCambiar: (id: string) => void
   }
 
-  let { variables, activa, cargadas = [], onCambiar }: Props = $props()
+  let { variables, activa, cargadas = [], onCambiar }: PropiedadesComponente = $props()
 </script>
 
 <!-- Selector de variables: cada botón pide el JSON de su variable y la usa

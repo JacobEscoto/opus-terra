@@ -12,7 +12,6 @@ export type CeldaTendencia = Pick<
   | "valores_anuales"
 >;
 
-const PLANET_RADIUS = 1;
 const LAYER_RADIUS = 1.003;
 const TEXTURE_WIDTH = 4096;
 const TEXTURE_HEIGHT = 2048;

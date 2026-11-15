@@ -1,10 +1,9 @@
 <script lang="ts">
-  interface Props {
-    disponible: boolean
+  interface PropiedadesComponente {
     escalaMaxima: number
   }
 
-  let { disponible, escalaMaxima }: Props = $props()
+  let { escalaMaxima }: PropiedadesComponente = $props()
 </script>
 
 <div class="leyenda" role="group" aria-label="Escala de cambios anuales">

@@ -3,7 +3,7 @@
   import { unidadLegible } from '../data/capa'
   import TrendMark from './TrendMark.svelte'
 
-  interface Props {
+  interface PropiedadesComponente {
     pares: ParRegiones[]
     /** Identificador del par resaltado (null = ninguno). */
     seleccionadoId: string | null
@@ -13,7 +13,7 @@
     anios: number
   }
 
-  let { pares, seleccionadoId, onSeleccionar, resultados, unidad, anios }: Props = $props()
+  let { pares, seleccionadoId, onSeleccionar, resultados, unidad, anios }: PropiedadesComponente = $props()
   let cantidadVisible = $state(80)
   let referenciaPares: ParRegiones[] | null = null
 

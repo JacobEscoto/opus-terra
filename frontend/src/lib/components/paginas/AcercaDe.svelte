@@ -1,8 +1,10 @@
 <script lang="ts">
   import { ACERCA, APP, NAVEGACION } from '../../data/textos'
-  interface Props { onCerrar: () => void }
-  let { onCerrar }: Props = $props()
+  interface PropiedadesComponente { onCerrar: () => void }
+  let { onCerrar }: PropiedadesComponente = $props()
 </script>
+
+<svelte:head><title>Acerca de — OpusTerra</title></svelte:head>
 
 <article class="page">
   <div class="page__top"><button type="button" onclick={onCerrar}>{NAVEGACION.volver}</button></div>

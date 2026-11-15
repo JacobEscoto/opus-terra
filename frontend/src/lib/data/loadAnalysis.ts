@@ -11,7 +11,6 @@ import type {
   ParRegiones,
   RegionAnalizada,
   ResultadoPixel,
-  Tendencia,
 } from "../types/analysis";
 import type { EtiquetaGlobo } from "../three/etiquetasLayer";
 
@@ -19,13 +18,9 @@ import type { EtiquetaGlobo } from "../three/etiquetasLayer";
 export interface VariableCatalogo {
   id: string;
   etiqueta: string;
-  url: string;
   tema: string;
   producto: string;
-  unidadAnual: string;
 }
-
-export const REGION_ACTIVA = "honduras";
 
 export interface RegionDisponible {
   id: string;
@@ -39,34 +34,26 @@ export const CATALOGO: VariableCatalogo[] = [
   {
     id: "merra2_t2m",
     etiqueta: "Temperatura (T2M)",
-    url: `/data/${REGION_ACTIVA}/merra2_t2m.json`,
     tema: "temperatura",
     producto: "MERRA-2",
-    unidadAnual: "°C/año",
   },
   {
     id: "merra2_precipitacion",
     etiqueta: "Precipitación MERRA-2",
-    url: `/data/${REGION_ACTIVA}/merra2_precipitacion.json`,
     tema: "precipitación modelada",
     producto: "MERRA-2",
-    unidadAnual: "mm/año",
   },
   {
     id: "imerg_precipitacion",
     etiqueta: "Precipitación IMERG",
-    url: `/data/${REGION_ACTIVA}/imerg_precipitacion.json`,
     tema: "precipitación observada",
     producto: "GPM IMERG",
-    unidadAnual: "mm/año",
   },
   {
     id: "mod13c2_ndvi",
     etiqueta: "Vegetación (NDVI)",
-    url: `/data/${REGION_ACTIVA}/mod13c2_ndvi.json`,
     tema: "vegetación (NDVI)",
     producto: "MODIS",
-    unidadAnual: "NDVI/año",
   },
 ];
 
@@ -76,7 +63,7 @@ export type EstadoCarga =
   | { estado: "error"; mensaje: string }
   | { estado: "listo"; datos: AnalisisTendencias };
 
-const cache = new Map<string, AnalisisTendencias>();
+const cacheEnMemoria = new Map<string, AnalisisTendencias>();
 
 export async function cargarPaises(region: string): Promise<EtiquetaGlobo[]> {
   try {
@@ -284,7 +271,7 @@ export async function cargarVariable(
   }
 
   const clave = `${region}/${id}`;
-  const enCache = cache.get(id);
+  const enCache = cacheEnMemoria.get(clave);
   if (enCache) return enCache;
 
   const url = `/data/${region}/${id}.json`;
@@ -311,6 +298,6 @@ export async function cargarVariable(
     fallar(`${url} declara la región "${analizados.region}", no ${region}.`);
   }
 
-  cache.set(clave, analizados);
+  cacheEnMemoria.set(clave, analizados);
   return analizados;
 }

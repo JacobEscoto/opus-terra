@@ -1,5 +1,5 @@
 <script lang="ts">
-  interface Props {
+  interface PropiedadesComponente {
     /** Primer año del periodo analizado (viene del contrato). */
     inicio: number
     /** Último año del periodo analizado (viene del contrato). */
@@ -12,7 +12,7 @@
     aviso?: string
   }
 
-  let { inicio, fin, anio = $bindable(), disponible, aviso }: Props = $props()
+  let { inicio, fin, anio = $bindable(), disponible, aviso }: PropiedadesComponente = $props()
 </script>
 
 <!-- El control solo se activa cuando el JSON trae valores por año y por celda. -->

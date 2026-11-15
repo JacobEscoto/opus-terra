@@ -4,7 +4,7 @@
   import { EXPLICACIONES } from "../data/textos";
   import TrendMark from "./TrendMark.svelte";
 
-  interface Props {
+  interface PropiedadesComponente {
     region: RegionAnalizada;
     /** Unidad de la variable, viene del contrato. */
     unidad: string;
@@ -14,7 +14,7 @@
     anios: number;
   }
 
-  let { region, unidad, pendiente, anios }: Props = $props();
+  let { region, unidad, pendiente, anios }: PropiedadesComponente = $props();
 
   function cambioFormateado(): string {
     if (pendiente === null) return "Cambio no disponible";

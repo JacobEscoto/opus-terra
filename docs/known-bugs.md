@@ -117,19 +117,7 @@ muestran «Alza» o «Bajada», nunca «Sin señal clara».
 
 **Dónde se origina.** `frontend/src/lib/components/TrendMark.svelte`.
 
-### 8. El archivo de ejemplo `mock.json` no se usa
-
-**Qué se ve.** Nada en la aplicación: `frontend/src/lib/data/mock.json` es un
-archivo de ejemplo que nadie lee. La aplicación pide los datos a
-`/data/<región>/<variable>.json`. Quien encuentre el archivo puede creer que es
-una fuente de la aplicación o un respaldo de los datos.
-
-**Cómo comprobarlo.** Buscar `mock.json` en el código de `frontend/src`:
-no hay ninguna referencia.
-
-**Dónde se origina.** `frontend/src/lib/data/mock.json`.
-
-### 9. Las instrucciones de credenciales no funcionan
+### 8. Las instrucciones de credenciales no funcionan
 
 **Qué se ve.** Las instrucciones de credenciales de `backend/README.md` mandan
 copiar una plantilla que no existe: al ejecutar `cp .env.example .env` dentro de

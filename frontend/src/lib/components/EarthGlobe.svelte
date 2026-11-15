@@ -7,15 +7,11 @@
     quitarCapa,
     type CeldaTendencia,
   } from "../three/tendenciaLayer";
-  import {
-    agregarEtiquetas,
-    quitarEtiquetas,
-    type EtiquetaGlobo,
-  } from "../three/etiquetasLayer";
+  import { quitarEtiquetas } from "../three/etiquetasLayer";
 
   type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
 
-  interface Props {
+  interface PropiedadesComponente {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
     onTelemetry?: (telemetry: EarthTelemetry | null) => void;
     /** Texture download progress, 0 → 1. */
@@ -35,7 +31,6 @@
     anio?: number;
     anios?: number[];
     escalaMaxima?: number;
-    etiquetas?: EtiquetaGlobo[];
   }
 
   let {
@@ -50,8 +45,7 @@
     anio = 0,
     anios = [],
     escalaMaxima = 1,
-    etiquetas = [],
-  }: Props = $props();
+  }: PropiedadesComponente = $props();
 
   let canvas: HTMLCanvasElement;
   let status = $state<"loading" | "ready" | "error">("loading");

@@ -10,7 +10,7 @@
   import PairList from "./PairList.svelte";
   import RegionCard from "./RegionCard.svelte";
 
-  interface Props {
+  interface PropiedadesComponente {
     /** Estado de la lectura del JSON (cargando / error / listo). */
     carga: EstadoCarga;
     /** Par elegido actualmente, o null para la vista de lista. */
@@ -46,7 +46,7 @@
     onCambiarVariable,
     recorridoActivo,
     onRecorrido,
-  }: Props = $props();
+  }: PropiedadesComponente = $props();
 
   let panelExpandido = $state(false);
 

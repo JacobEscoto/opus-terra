@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Tendencia } from '../types/analysis'
 
-  interface Props {
+  interface PropiedadesComponente {
     /** Dirección del cambio detectado. */
     tendencia: Tendencia
     /** Si es falso, se dibuja un rombo neutro (señal sin significancia). */
@@ -12,7 +12,7 @@
     texto?: string
   }
 
-  let { tendencia, significativa, conTexto = false, texto }: Props = $props()
+  let { tendencia, significativa, conTexto = false, texto }: PropiedadesComponente = $props()
 
   const etiqueta = $derived(
     texto ?? (significativa ? (tendencia === 'alza' ? 'Alza' : 'Bajada') : 'Sin señal clara')

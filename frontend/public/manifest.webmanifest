@@ -1,0 +1,15 @@
+{
+  "name": "OpusTerra — Cambios ambientales en el planeta",
+  "short_name": "OpusTerra",
+  "description": "Globo 3D con datos satelitales de la NASA para explorar tendencias de temperatura, lluvia y vegetación del planeta.",
+  "lang": "es",
+  "theme_color": "#0b1220",
+  "background_color": "#0b1220",
+  "display": "standalone",
+  "icons": [{
+    "src": "/icon.svg",
+    "sizes": "any",
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
+  }]
+}

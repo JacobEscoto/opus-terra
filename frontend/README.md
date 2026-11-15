@@ -65,10 +65,6 @@ El JSON de análisis no se pudo leer (HTTP 404): /data/honduras/merra2_t2m.json.
 
 Debajo aparece el botón **Reintentar**, que vuelve a pedir el mismo archivo. El mensaje cambia según la causa: `No se pudo conectar para leer …`, `El JSON de análisis no es válido: …` o `… declara la región "centroamerica", no honduras.` Para repararlo, comprueba que el archivo exista en `frontend/public/data/<región>/<variable>.json` y, si falta o está incompleto, vuelve a generarlo con [`backend/scripts/generate_analysis.py`](../backend/scripts/generate_analysis.py) tras descargar los datos con `backend/scripts/download_data.py` (las instrucciones de descarga están en [`backend/README.md`](../backend/README.md)) antes de pulsar **Reintentar**.
 
-### `mock.json` no se usa
-
-`frontend/src/lib/data/mock.json` es un archivo de ejemplo que **no se usa**: ninguna parte de `frontend/src` lo importa ni lo pide por red. La aplicación no tiene modo de ejemplo ni arranca con datos falsos: siempre pide los JSON de `frontend/public/data/`. Si te lo encuentras, no lo edites pensando que cambia la pantalla; está anotado en [`docs/known-bugs.md`](../docs/known-bugs.md).
-
 ## La capa del globo
 
 Los marcadores del globo se arman en tres pasos:
@@ -106,7 +102,6 @@ Los marcadores del globo se arman en tres pasos:
 - `loadAnalysis.ts` — catálogo de variables y lectura y validación de los JSON.
 - `capa.ts` — qué celdas se dibujan y qué textos las explican.
 - `textos.ts` — textos fijos de la interfaz: menú, glosario, leyenda y avisos.
-- `mock.json` — archivo de ejemplo sin uso (ver arriba).
 - `types/analysis.ts` — tipos TypeScript del contrato que consumen los componentes.
 
 ## Qué se ve en pantalla

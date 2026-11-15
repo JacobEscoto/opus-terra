@@ -1,8 +1,8 @@
 <script lang="ts">
   import { LEYENDA } from '../data/textos'
 
-  interface Props {}
-  let {}: Props = $props()
+  interface PropiedadesComponente {}
+  let {}: PropiedadesComponente = $props()
   let abierta = $state(true)
 
   function sincronizarDetalle(evento: Event) {

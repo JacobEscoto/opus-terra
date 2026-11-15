@@ -24,8 +24,8 @@
   import AcercaDe from "./lib/components/paginas/AcercaDe.svelte";
   import { APP, AYUDA_MAPA, NAVEGACION } from "./lib/data/textos";
 
-  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
-  type SetAutoRotate = (enabled: boolean) => void;
+  type Enfocar = (lat: number, lon: number, duracion: number) => Promise<void>;
+  type FijarRotacionAutomatica = (habilitada: boolean) => void;
 
   let carga = $state<EstadoCarga>({ estado: "cargando" });
   let variableActiva = $state("merra2_t2m");
@@ -55,9 +55,9 @@
   let anio = $state<number>(2023);
   let mostrarAyuda = $state(false);
   let recorridoActivo = $state(false);
-  let focusOn = $state<FocusOn | null>(null);
+  let enfocar = $state<Enfocar | null>(null);
   let cancelFocus = $state<(() => void) | null>(null);
-  let setAutoRotate = $state<SetAutoRotate | null>(null);
+  let fijarRotacionAutomatica = $state<FijarRotacionAutomatica | null>(null);
   let timerRecorrido: ReturnType<typeof setTimeout> | null = null;
   let recorridoToken = 0;
   let enfoqueInicialHecho = false;
@@ -167,7 +167,7 @@
       timerRecorrido = null;
     }
     cancelFocus?.();
-    setAutoRotate?.(true);
+    fijarRotacionAutomatica?.(true);
   }
 
   async function iniciarRecorrido(pares: ParRegiones[]) {
@@ -175,42 +175,42 @@
       detenerRecorrido();
       return;
     }
-    if (!focusOn || pares.length === 0) return;
+    if (!enfocar || pares.length === 0) return;
 
     const token = ++recorridoToken;
     recorridoActivo = true;
-    setAutoRotate?.(false);
+    fijarRotacionAutomatica?.(false);
     for (const par of pares) {
       if (token !== recorridoToken) return;
       idSeleccionado = par.id;
       const lat = (par.region_a.lat + par.region_b.lat) / 2;
       const lon = (par.region_a.lon + par.region_b.lon) / 2;
-      await focusOn(lat, lon, 2000);
+      await enfocar(lat, lon, 2000);
       if (token !== recorridoToken) return;
       if (!(await esperar(4000, token))) return;
     }
     if (token === recorridoToken) {
       recorridoActivo = false;
       idSeleccionado = null;
-      setAutoRotate?.(true);
+      fijarRotacionAutomatica?.(true);
     }
   }
 
-  function onGlobeReady(
-    nextFocusOn: FocusOn,
+  function alPrepararGlobo(
+    siguienteEnfoque: Enfocar,
     nextCancelFocus: () => void,
-    nextSetAutoRotate: SetAutoRotate,
+    siguienteRotacion: FijarRotacionAutomatica,
   ) {
-    focusOn = nextFocusOn;
+    enfocar = siguienteEnfoque;
     cancelFocus = nextCancelFocus;
-    setAutoRotate = nextSetAutoRotate;
+    fijarRotacionAutomatica = siguienteRotacion;
   }
 
   $effect(() => {
-    if (carga.estado !== "listo" || !focusOn || enfoqueInicialHecho) return;
+    if (carga.estado !== "listo" || !enfocar || enfoqueInicialHecho) return;
     enfoqueInicialHecho = true;
     const centro = centroDe(regionActiva);
-    void focusOn(centro.lat, centro.lon, 2000);
+    void enfocar(centro.lat, centro.lon, 2000);
   });
 
   /** Lee el JSON seleccionado y reemplaza la capa sin crear otra escena. */
@@ -296,15 +296,21 @@
 </script>
 
 <svelte:head>
-  <title>OpusTerra — Mapa de cambios ambientales</title>
+  <title>
+    {pagina === "glosario"
+      ? "Glosario — OpusTerra"
+      : pagina === "acerca"
+        ? "Acerca de — OpusTerra"
+        : "OpusTerra — Cambios ambientales en el planeta"}
+  </title>
   <meta
     name="description"
-    content="Explora tendencias ambientales globales con datos satelitales y modelos climáticos verificables."
+    content="Globo 3D con datos satelitales de la NASA para explorar tendencias de temperatura, lluvia y vegetación del planeta de forma clara y verificable."
   />
-  <meta property="og:title" content="OpusTerra — Mapa de cambios ambientales" />
+  <meta property="og:title" content="OpusTerra — Cambios ambientales en el planeta" />
   <meta
     property="og:description"
-    content="Explora tendencias ambientales globales con datos satelitales y modelos climáticos verificables."
+    content="Globo 3D con datos satelitales de la NASA para explorar tendencias de temperatura, lluvia y vegetación del planeta de forma clara y verificable."
   />
 </svelte:head>
 
@@ -317,9 +323,8 @@
   {anio}
   anios={datos?.periodo.anios_completos ?? []}
   escalaMaxima={preparacion?.escalaMaxima}
-  onReady={onGlobeReady}
+  onReady={alPrepararGlobo}
   onInteraction={detenerRecorrido}
-  etiquetas={etiquetasGlobo}
 />
 
 <main class="interface">
