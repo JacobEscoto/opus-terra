@@ -1,0 +1,37 @@
+{
+  "fuente": "NASA GPM IMERG v07",
+  "variable": "imerg_precipitacion",
+  "region": "honduras",
+  "region_nombre": "Honduras",
+  "nombre_variable": "Precipitación GPM IMERG",
+  "unidad": "mm/hr",
+  "periodo": {
+    "inicio": 2000,
+    "fin": 2025,
+    "mes_inicio": "2000-02",
+    "mes_fin": "2025-09",
+    "anios_completos": []
+  },
+  "contexto_oms": "Análisis ambiental; no constituye un diagnóstico de salud.",
+  "pares": [],
+  "pixeles_probados": 0,
+  "pixeles_significativos_fdr": 0,
+  "fdr": {
+    "metodo": "Benjamini-Hochberg",
+    "alfa": 0.05,
+    "universo": "píxeles de Honduras",
+    "estado": "no_aplicable_sin_malla"
+  },
+  "resultados_pixeles": [],
+  "metodologia": {
+    "anomalia": "anomalía mensual respecto a la climatología del periodo efectivo",
+    "enso": "remoción lineal mediante ONI mensual",
+    "serie_anual": "promedio de residuos mensuales; solo años con 12 meses",
+    "tendencia": "Mann-Kendall original y pendiente de Theil-Sen por píxel"
+  },
+  "limitacion": "El insumo disponible es una serie area-promedio sin dimensiones lat/lon; no se fabricaron píxeles ni pruebas de significancia.",
+  "fuente_periodo_disponible": {
+    "inicio": 1998,
+    "fin": 2025
+  }
+}

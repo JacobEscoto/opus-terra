@@ -1,10 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import EarthGlobe from './lib/components/EarthGlobe.svelte'
   import AnalysisPanel from './lib/components/AnalysisPanel.svelte'
   import TimelineControl from './lib/components/TimelineControl.svelte'
   import { cargarVariable, CATALOGO, type EstadoCarga } from './lib/data/loadAnalysis'
   import { prepararCapa, tieneValoresAnuales } from './lib/data/capa'
+  import type { ParRegiones } from './lib/types/analysis'
+
+  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>
+  type SetAutoRotate = (enabled: boolean) => void
 
   let carga = $state<EstadoCarga>({ estado: 'cargando' })
   let variableActiva = $state('merra2_t2m')
@@ -18,6 +22,13 @@
   let anio = $state<number>(2023)
   let capaTendenciaVisible = $state(true)
   let mostrarAyuda = $state(false)
+  let recorridoActivo = $state(false)
+  let focusOn = $state<FocusOn | null>(null)
+  let cancelFocus = $state<(() => void) | null>(null)
+  let setAutoRotate = $state<SetAutoRotate | null>(null)
+  let timerRecorrido: ReturnType<typeof setTimeout> | null = null
+  let recorridoToken = 0
+  let enfoqueInicialHecho = false
 
   /**
    * En escritorio la columna del panel queda a la derecha: un offset negativo
@@ -39,8 +50,71 @@
       : null
   )
 
+  function esperar(ms: number, token: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      timerRecorrido = setTimeout(() => {
+        timerRecorrido = null
+        resolve(token === recorridoToken)
+      }, ms)
+    })
+  }
+
+  function detenerRecorrido() {
+    recorridoToken += 1
+    recorridoActivo = false
+    if (timerRecorrido !== null) {
+      clearTimeout(timerRecorrido)
+      timerRecorrido = null
+    }
+    cancelFocus?.()
+    setAutoRotate?.(true)
+  }
+
+  async function iniciarRecorrido(pares: ParRegiones[]) {
+    if (recorridoActivo) {
+      detenerRecorrido()
+      return
+    }
+    if (!focusOn || pares.length === 0) return
+
+    const token = ++recorridoToken
+    recorridoActivo = true
+    setAutoRotate?.(false)
+    for (const par of pares) {
+      if (token !== recorridoToken) return
+      idSeleccionado = par.id
+      const lat = (par.region_a.lat + par.region_b.lat) / 2
+      const lon = (par.region_a.lon + par.region_b.lon) / 2
+      await focusOn(lat, lon, 2000)
+      if (token !== recorridoToken) return
+      if (!(await esperar(4000, token))) return
+    }
+    if (token === recorridoToken) {
+      recorridoActivo = false
+      idSeleccionado = null
+      setAutoRotate?.(true)
+    }
+  }
+
+  function onGlobeReady(
+    nextFocusOn: FocusOn,
+    nextCancelFocus: () => void,
+    nextSetAutoRotate: SetAutoRotate,
+  ) {
+    focusOn = nextFocusOn
+    cancelFocus = nextCancelFocus
+    setAutoRotate = nextSetAutoRotate
+  }
+
+  $effect(() => {
+    if (carga.estado !== 'listo' || !focusOn || enfoqueInicialHecho) return
+    enfoqueInicialHecho = true
+    void focusOn(14.75, -86.25, 2000)
+  })
+
   /** Lee el JSON seleccionado y reemplaza la capa sin crear otra escena. */
   async function cambiarVariable(id: string) {
+    detenerRecorrido()
     const numeroSolicitud = ++solicitud
     variableActiva = id
     carga = { estado: 'cargando' }
@@ -77,6 +151,11 @@
     consulta.addEventListener('change', actualizar)
     return () => consulta.removeEventListener('change', actualizar)
   })
+
+  onDestroy(() => {
+    detenerRecorrido()
+    cancelFocus?.()
+  })
 </script>
 
 <svelte:head>
@@ -102,6 +181,8 @@
     anio={anio}
     anios={datos?.periodo.anios_completos ?? []}
     escalaMaxima={preparacion?.escalaMaxima}
+    onReady={onGlobeReady}
+    onInteraction={detenerRecorrido}
   />
 
 <main class="interface">
@@ -161,6 +242,8 @@
         onCambiarVariable={(id) => void cambiarVariable(id)}
         capaVisible={capaTendenciaVisible}
         onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
+        recorridoActivo={recorridoActivo}
+        onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
         anio={anio}
         anualesDisponibles={anualesDisponibles}
         escalaMaxima={preparacion?.escalaMaxima ?? 1}

@@ -1,6 +1,8 @@
 {
   "fuente": "NASA GPM IMERG v07",
   "variable": "imerg_precipitacion",
+  "region": "honduras",
+  "region_nombre": "Honduras",
   "nombre_variable": "Precipitación GPM IMERG",
   "unidad": "mm/hr",
   "periodo": {

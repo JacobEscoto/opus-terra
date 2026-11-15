@@ -1,6 +1,8 @@
 {
   "fuente": "NASA MERRA-2 M2TMNXSLV v5.12.4",
   "variable": "merra2_t2m",
+  "region": "honduras",
+  "region_nombre": "Honduras",
   "nombre_variable": "Temperatura del aire a 2 m",
   "unidad": "degC",
   "periodo": {

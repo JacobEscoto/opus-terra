@@ -1,4 +1,4 @@
-"""Configuración y conversiones para el análisis climático de Honduras."""
+"""Configuración y conversiones para el análisis climático."""
 
 from __future__ import annotations
 

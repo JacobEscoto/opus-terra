@@ -1,13 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { EarthScene, type EarthTelemetry } from '../three/earthScene'
-import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
+  import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
+
+  type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>
 
   interface Props {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
     onTelemetry?: (telemetry: EarthTelemetry | null) => void
     /** Texture download progress, 0 → 1. */
     onProgress?: (ratio: number) => void
+    onReady?: (focusOn: FocusOn, cancelFocus: () => void, setAutoRotate: (enabled: boolean) => void) => void
+    onInteraction?: () => void
     /** How far off-centre the planet sits, as a fraction of the canvas width. */
     horizontalOffset?: number
     /** Keeps the whole globe readable when a data layer is active. */
@@ -22,6 +26,8 @@ import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from 
   let {
     onTelemetry,
     onProgress,
+    onReady,
+    onInteraction,
     horizontalOffset = 0,
     dataMode = false,
     celdas = [],
@@ -54,6 +60,7 @@ import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from 
       canvas,
       onTelemetry,
       onProgress,
+      onInteraction,
       horizontalOffset,
       dataMode,
     })
@@ -64,6 +71,7 @@ import { agregarCapa, actualizarColores, quitarCapa, type CeldaTendencia } from 
       .load()
       .then(() => {
         status = 'ready'
+        onReady?.(scene.focusOn.bind(scene), scene.cancelFocus.bind(scene), scene.setAutoRotate.bind(scene))
       })
       .catch((error: unknown) => {
         console.error(error)

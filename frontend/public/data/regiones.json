@@ -1,0 +1,18 @@
+[
+  {
+    "id": "honduras",
+    "nombre": "Honduras",
+    "bbox": [
+      -89.4,
+      12.9,
+      -83.1,
+      16.6
+    ],
+    "variables": [
+      "merra2_t2m",
+      "merra2_precipitacion",
+      "imerg_precipitacion",
+      "mod13c2_ndvi"
+    ]
+  }
+]

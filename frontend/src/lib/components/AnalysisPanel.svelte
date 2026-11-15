@@ -26,6 +26,8 @@
     anio: number
     anualesDisponibles: boolean
     escalaMaxima: number
+    recorridoActivo: boolean
+    onRecorrido: () => void
   }
 
   let {
@@ -44,6 +46,8 @@
     anio,
     anualesDisponibles,
     escalaMaxima,
+    recorridoActivo,
+    onRecorrido,
   }: Props = $props()
 
   let panelExpandido = $state(false)
@@ -83,7 +87,7 @@
       <p class="kicker"><span>02</span>Análisis de tendencias</p>
     {#if datos}
         <span class="panel__mock" title="Datos procesados del backend">
-          Datos procesados / Honduras
+          Datos procesados / {datos.region_nombre}
         </span>
       {/if}
     </div>
@@ -191,6 +195,15 @@
                 <p>zonas analizadas: {datos.pixeles_probados} · {datos.pixeles_significativos_fdr} significativas tras FDR</p>
               </div>
             {:else}
+              <div class="recorrido-control">
+                <div>
+                  <strong>Recorrido por las zonas</strong>
+                  <p>Ve un par a la vez y detente cuando quieras.</p>
+                </div>
+                <button type="button" onclick={onRecorrido} aria-pressed={recorridoActivo}>
+                  {recorridoActivo ? 'Detener' : 'Ver recorrido'}
+                </button>
+              </div>
               <PairList
                pares={datos.pares}
               seleccionadoId={parSeleccionado?.id ?? null}
@@ -392,6 +405,43 @@
 
   .capa-control__boton:hover,
   .capa-control__boton:focus-visible {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .recorrido-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 12px;
+    border: 1px solid var(--hairline);
+    background: rgb(255 255 255 / 3%);
+  }
+
+  .recorrido-control strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .recorrido-control p {
+    margin: 5px 0 0;
+    font: 10px/1.5 var(--mono);
+    color: var(--faint);
+  }
+
+  .recorrido-control button {
+    padding: 6px 9px;
+    border: 1px solid var(--muted);
+    background: transparent;
+    color: var(--ink);
+    font: 10px var(--mono);
+    white-space: nowrap;
+  }
+
+  .recorrido-control button:hover,
+  .recorrido-control button:focus-visible {
     border-color: var(--amber);
     color: var(--amber);
   }

@@ -61,6 +61,10 @@ export interface AnalisisTendencias {
   fuente: string
   /** Identificador de la variable analizada (p. ej. "clorofila_a"). */
   variable: string
+  /** Identificador estable de la región analizada. */
+  region: string
+  /** Nombre visible de la región analizada. */
+  region_nombre: string
   /** Nombre legible de la variable. */
   nombre_variable: string
   /** Unidad de medida de la variable. */

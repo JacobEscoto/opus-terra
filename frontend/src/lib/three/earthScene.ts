@@ -36,6 +36,7 @@ export interface EarthSceneOptions {
   dataMode?: boolean
   onProgress?: (ratio: number) => void
   onTelemetry?: (telemetry: EarthTelemetry | null) => void
+  onInteraction?: () => void
 }
 
 const AXIAL_TILT = THREE.MathUtils.degToRad(23.44)
@@ -90,6 +91,14 @@ export class EarthScene {
   /** Ideal camera distance for the current viewport, recomputed on resize. */
   private idealDistance = 6.4
   private userZoomed = false
+  private focusAnimation: {
+    startedAt: number
+    duration: number
+    from: number
+    to: number
+    resolve: () => void
+    restoreAutoRotate: boolean
+  } | null = null
 
   constructor(options: EarthSceneOptions) {
     this.options = options
@@ -421,6 +430,60 @@ export class EarthScene {
     return this.spinGroup
   }
 
+  /**
+   * Gira la superficie hasta que un punto geográfico quede frente a la cámara.
+   * La animación se resuelve en tick() para no crear un segundo reloj.
+   */
+  focusOn(lat: number, lon: number, duration: number): Promise<void> {
+    this.cancelFocus()
+
+    const point = new THREE.Vector3(
+      Math.cos(THREE.MathUtils.degToRad(lat)) * Math.cos(THREE.MathUtils.degToRad(lon)),
+      Math.sin(THREE.MathUtils.degToRad(lat)),
+      -Math.cos(THREE.MathUtils.degToRad(lat)) * Math.sin(THREE.MathUtils.degToRad(lon)),
+    )
+    point.applyAxisAngle(new THREE.Vector3(0, 0, 1), AXIAL_TILT)
+
+    // El eje Y rota la superficie. Solo necesitamos igualar el rumbo horizontal
+    // del punto con el rumbo de la cámara; el ángulo más corto evita vueltas.
+    const destino = Math.atan2(-point.x, point.z)
+    const actual = this.spinGroup.rotation.y
+    const delta = THREE.MathUtils.euclideanModulo(destino - actual + Math.PI, Math.PI * 2) - Math.PI
+    const to = actual + delta
+    const restoreAutoRotate = this.controls.autoRotate
+    this.controls.autoRotate = false
+
+    if (this.reduceMotion || duration <= 0) {
+      this.spinGroup.rotation.y = to
+      this.controls.autoRotate = restoreAutoRotate
+      return Promise.resolve()
+    }
+
+    return new Promise<void>((resolve) => {
+      this.focusAnimation = {
+        startedAt: performance.now(),
+        duration,
+        from: actual,
+        to,
+        resolve,
+        restoreAutoRotate,
+      }
+    })
+  }
+
+  /** Cancela un enfoque activo y deja la escena lista para otra interacción. */
+  cancelFocus() {
+    const animation = this.focusAnimation
+    if (!animation) return
+    this.focusAnimation = null
+    this.controls.autoRotate = animation.restoreAutoRotate
+    animation.resolve()
+  }
+
+  setAutoRotate(enabled: boolean) {
+    this.controls.autoRotate = enabled && !this.reduceMotion
+  }
+
   /** Downloads the NASA imagery and applies it to the materials. */
   async load(): Promise<void> {
     const loader = new TextureLoader(this.options.onProgress)
@@ -501,6 +564,8 @@ export class EarthScene {
 
   private handleControlStart() {
     this.userZoomed = true
+    this.cancelFocus()
+    this.options.onInteraction?.()
   }
 
   /**
@@ -541,7 +606,19 @@ export class EarthScene {
     const delta = Math.min((now - this.lastTime) / 1000, 0.1)
     this.lastTime = now
 
-    this.spinGroup.rotation.y += this.spinSpeed * delta
+    const focus = this.focusAnimation
+    if (focus) {
+      const progress = THREE.MathUtils.clamp((now - focus.startedAt) / focus.duration, 0, 1)
+      const eased = progress * progress * (3 - 2 * progress)
+      this.spinGroup.rotation.y = THREE.MathUtils.lerp(focus.from, focus.to, eased)
+      if (progress >= 1) {
+        this.focusAnimation = null
+        this.controls.autoRotate = focus.restoreAutoRotate
+        focus.resolve()
+      }
+    } else {
+      this.spinGroup.rotation.y += this.spinSpeed * delta
+    }
     // clouds drift a little faster than the solid surface
     this.cloudGroup.rotation.y += this.spinSpeed * 0.06 * delta
 
@@ -564,6 +641,7 @@ export class EarthScene {
   }
 
   dispose() {
+    this.cancelFocus()
     this.running = false
     cancelAnimationFrame(this.frame)
 

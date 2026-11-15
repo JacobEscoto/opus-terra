@@ -1,6 +1,8 @@
 {
   "fuente": "NASA MODIS MOD13C2 v061 (CMG 0.05° mensual)",
   "variable": "mod13c2_ndvi",
+  "region": "honduras",
+  "region_nombre": "Honduras",
   "nombre_variable": "Índice de vegetación de diferencia normalizada (NDVI)",
   "unidad": "NDVI (adimensional)",
   "periodo": {

@@ -1,6 +1,8 @@
 {
   "fuente": "NASA MERRA-2 M2TMNXFLX v5.12.4",
   "variable": "merra2_precipitacion",
+  "region": "honduras",
+  "region_nombre": "Honduras",
   "nombre_variable": "Precipitación MERRA-2 PRECTOTCORR",
   "unidad": "kg m-2 s-1",
   "periodo": {

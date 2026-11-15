@@ -30,12 +30,14 @@ export interface VariableCatalogo {
   unidadAnual: string
 }
 
+export const REGION_ACTIVA = 'honduras'
+
 /** Catálogo de variables que la interfaz puede representar. */
 export const CATALOGO: VariableCatalogo[] = [
   {
     id: 'merra2_t2m',
     etiqueta: 'Temperatura (T2M)',
-    url: '/data/merra2_t2m.json',
+    url: `/data/${REGION_ACTIVA}/merra2_t2m.json`,
     tema: 'temperatura',
     producto: 'MERRA-2',
     unidadAnual: '°C/año',
@@ -43,7 +45,7 @@ export const CATALOGO: VariableCatalogo[] = [
   {
     id: 'merra2_precipitacion',
     etiqueta: 'Precipitación MERRA-2',
-    url: '/data/merra2_precipitacion.json',
+    url: `/data/${REGION_ACTIVA}/merra2_precipitacion.json`,
     tema: 'precipitación modelada',
     producto: 'MERRA-2',
     unidadAnual: 'mm/año',
@@ -51,7 +53,7 @@ export const CATALOGO: VariableCatalogo[] = [
   {
     id: 'imerg_precipitacion',
     etiqueta: 'Precipitación IMERG',
-    url: '/data/imerg_precipitacion.json',
+    url: `/data/${REGION_ACTIVA}/imerg_precipitacion.json`,
     tema: 'precipitación observada',
     producto: 'GPM IMERG',
     unidadAnual: 'mm/año',
@@ -59,7 +61,7 @@ export const CATALOGO: VariableCatalogo[] = [
   {
     id: 'mod13c2_ndvi',
     etiqueta: 'Vegetación (NDVI)',
-    url: '/data/mod13c2_ndvi.json',
+    url: `/data/${REGION_ACTIVA}/mod13c2_ndvi.json`,
     tema: 'vegetación (NDVI)',
     producto: 'MODIS',
     unidadAnual: 'NDVI/año',
@@ -155,6 +157,12 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
   if (typeof d.variable !== 'string' || typeof d.nombre_variable !== 'string' || typeof d.unidad !== 'string') {
     fallar('El JSON de análisis no declara variable o unidad.')
   }
+  if (typeof d.region !== 'string' || d.region.length === 0) {
+    fallar('El JSON de análisis no declara un identificador de región válido.')
+  }
+  if (typeof d.region_nombre !== 'string' || d.region_nombre.length === 0) {
+    fallar('El JSON de análisis no declara un nombre de región válido.')
+  }
   if (
     typeof d.periodo !== 'object' ||
     d.periodo === null ||
@@ -185,6 +193,8 @@ function validarAnalisis(datos: unknown): AnalisisTendencias {
   return {
     fuente: d.fuente as string,
     variable: d.variable as string,
+    region: d.region as string,
+    region_nombre: d.region_nombre as string,
     nombre_variable: d.nombre_variable as string,
     unidad: d.unidad as string,
     periodo: d.periodo as AnalisisTendencias['periodo'],

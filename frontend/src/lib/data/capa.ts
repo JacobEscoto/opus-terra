@@ -62,7 +62,7 @@ export function aniosDelPeriodo(datos: AnalisisTendencias): number {
 /**
  * Frase resumen del panel, armada solo con los campos del JSON.
  *
- * Ejemplo (MERRA-2 T2M): «En 24 años, 45 de 110 zonas de Honduras se
+ * Ejemplo (MERRA-2 T2M): «En 24 años, 45 de 110 zonas de la región se
  * calentaron de forma clara.» Los productos de promedio de área no tienen
  * celdas que analizar, así que la frase lo dice sin cifras inventadas.
  */
@@ -77,7 +77,7 @@ export function fraseResumen(datos: AnalisisTendencias): string {
       : 'mostraron un cambio claro'
   return `En ${anios} años, ${formatearNumero(datos.pixeles_significativos_fdr)} de ${formatearNumero(
     datos.pixeles_probados,
-  )} zonas de Honduras ${cambio}.`
+  )} zonas de ${datos.region_nombre} ${cambio}.`
 }
 
 /**
@@ -138,7 +138,7 @@ export function descripcionCapa(datos: AnalisisTendencias, entrada: VariableCata
   }
   return `Tendencia de ${entrada.tema} ${periodo}, ${entrada.producto}, ajustada por ENSO. ${formatearNumero(
     datos.pixeles_significativos_fdr,
-  )} zonas donde el cambio es claro y no parece casualidad. No encontramos zonas con cambios opuestos.`
+  )} zonas de ${datos.region_nombre} donde el cambio es claro y no parece casualidad. No encontramos zonas con cambios opuestos.`
 }
 
 /**
