@@ -20,8 +20,8 @@ pnpm run dev
 **Qué se ve.** En el globo no aparece ninguna zona que vaya a menos. Con la
 vegetación hay 2.747 celdas con cambio claro: 1.628 suben y 1.119 bajan, pero
 solo se dibujan las 1.628 que suben. El aviso del panel dice «Se muestran 1.628
-de las 2.747 celdas significativas (ambos signos)», aunque las que bajan no
-están en el dibujo.
+de las 2.747 celdas significativas (ambos signos), priorizadas por magnitud»,
+aunque las que bajan no están en el dibujo.
 
 **Cómo comprobarlo.** Elegir «Vegetación (NDVI)» y comparar los puntos del
 globo con las celdas que bajan en el archivo de datos: ninguna de esas celdas
@@ -59,7 +59,7 @@ nombres y las coordenadas de varios pares seguidos.
 
 ### 4. Pares que dicen «alza» y guardan un porcentaje negativo
 
-**Qué se ve.** En el archivo de la vegetación hay 70 pares en los que la zona
+**Qué se ve.** En el archivo de la vegetación hay 60 pares en los que la zona
 marcada como «alza» guarda un cambio porcentual negativo; el primero declara
 «alza» con −525,76 %. El porcentaje se calcula con el primer y el último valor
 de una serie de residuos que ronda cero, así que una diferencia diminuta
