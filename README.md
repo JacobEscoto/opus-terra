@@ -22,7 +22,7 @@ El proyecto no sustituye una medición directa. Presenta resultados de análisis
 ## Qué hace la app hoy
 
 - **Globo 3D interactivo.** Muestra sobre la superficie de la Tierra las zonas donde el cambio es claro.
-- **Selector de variables.** Permite elegir entre temperatura del aire, precipitación MERRA-2, precipitación IMERG y vegetación (NDVI). Solo aparecen las variables disponibles para la región elegida.
+- **Selector de variables.** Permite elegir entre temperatura del aire, precipitación MERRA-2, precipitación IMERG y vegetación (NDVI).
 - **Capa de marcadores que se puede mostrar u ocultar.** El botón «Ocultar» / «Mostrar» quita y devuelve los puntos del globo sin recargar los datos.
 - **Solo se dibujan las tendencias al alza.** El globo y la lista «Celdas significativas» dejan fuera las zonas que van a la baja, aunque el archivo de datos las contenga (ver [`docs/known-bugs.md`](docs/known-bugs.md)).
 - **Lista de pares cuando existen.** Cuando hay zonas con cambio claro en las dos direcciones, el panel lista pares de zonas con tendencias opuestas y permite abrir cada par. Hoy solo la vegetación forma pares.
