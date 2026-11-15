@@ -142,21 +142,34 @@ uv run python scripts/download_data.py --product all --region honduras --full-do
 El backend son dos pasos, siempre en este orden:
 
 1. **Descarga.** `backend/scripts/download_data.py` busca los productos en CMR y escribe los NetCDF recortados en `data/raw/<carpeta del producto>/` (por ejemplo `data/raw/merra2_slv/`). Con `--format geotiff` o `both` añade los `.tif` en `data/raw/<carpeta del producto>/geotiff/`.
-2. **Generación de los JSON.** `backend/scripts/generate_analysis.py` lee esos NetCDF desde `data/raw/` y escribe en `frontend/public/data/<región>/` los JSON que consume la app; por ejemplo `frontend/public/data/honduras/`. Contrato de esos archivos: [`docs/json-contract.md`](../docs/json-contract.md).
+2. **Generación de los JSON.** `backend/scripts/generate_analysis.py` lee los NetCDF de `data/raw/<región>/<carpeta del producto>/` (por ejemplo `data/raw/honduras/merra2_slv/`) para MERRA-2 y MOD13C2, y de `data/raw/gpm_imerg/` para GPM IMERG; escribe en `frontend/public/data/<región>/` los JSON que consume la app; por ejemplo `frontend/public/data/honduras/`. Contrato de esos archivos: [`docs/json-contract.md`](../docs/json-contract.md).
+
+La descarga tiene que dejar los archivos en esas carpetas. El `--output-dir` por defecto es `<raíz del repositorio>/data/raw`, pero una ruta pasada a mano se resuelve desde el directorio donde se ejecuta el comando: desde `backend/`, la carpeta de la región se escribe `../data/raw/<región>`.
 
 ```bash
 cd backend
+
+# MERRA-2 y MOD13C2: generate_analysis.py los lee de data/raw/honduras/
+uv run python scripts/download_data.py --product merra2_slv --region honduras --start 2000-02-01 --end 2025-09-30 --output-dir ../data/raw/honduras
+uv run python scripts/download_data.py --product merra2_flx --region honduras --start 2000-02-01 --end 2025-09-30 --output-dir ../data/raw/honduras
+uv run python scripts/download_data.py --product merra2_aer --region honduras --start 2000-02-01 --end 2025-09-30 --output-dir ../data/raw/honduras
+uv run python scripts/download_data.py --product mod13c2 --region honduras --start 2000-02-01 --end 2025-09-30 --output-dir ../data/raw/honduras
+
+# GPM IMERG: generate_analysis.py lo lee de data/raw/gpm_imerg/ (el --output-dir por defecto)
+uv run python scripts/download_data.py --product gpm_imerg --region honduras --start 2000-02-01 --end 2025-09-30
+
+# JSON del frontend
 uv run python scripts/generate_analysis.py --region honduras
 ```
 
-La generación exige los meses completos de la ventana configurada: `PERIODO_COMUN` en `backend/src/opusterra/config.py` fija 2000-02 → 2025-09, 308 meses. Si falta un mes, el script se detiene con un error que indica cuántos o cuáles meses faltan (por ejemplo `Faltan meses MERRA-2 T2M en la ventana efectiva: ...`); hay que descargar esos meses y volver a ejecutarlo.
+La generación exige los meses completos de la ventana configurada: `PERIODO_COMUN` en `backend/src/opusterra/config.py` fija 2000-02 → 2025-09, 308 meses. Si falta un mes, el script se detiene con un error que indica cuántos o cuáles meses faltan (por ejemplo `Faltan meses MERRA-2 T2M en la ventana efectiva: ...`); hay que descargar esos meses y volver a ejecutarlo. Además de los NetCDF, la generación necesita la serie ONI en `data/external/nino-3.4/iersst_nino3.4a_1996_2026.nc`; ninguno de los dos pasos la crea y, si falta, el script se detiene con `FileNotFoundError: No existe el archivo ONI`.
 
 ## Flujo de trabajo típico
 
 1. **Explorar en Giovanni** (https://giovanni.gsfc.nasa.gov) para decidir la variable y el período.
 2. **Ejecutar un dry-run** para validar que los parámetros de búsqueda (fecha, región) devuelven resultados.
-3. **Ejecutar la descarga definitiva** con el formato deseado (`nc` o `both`).
-4. **Ver los resultados** en `data/raw/<carpeta del producto>/` (NetCDF) y `data/raw/<carpeta del producto>/geotiff/` (GeoTIFF).
+3. **Ejecutar la descarga definitiva** con el formato deseado (`nc` o `both`) y el `--output-dir` que espera la generación (ver la cadena de análisis).
+4. **Ver los resultados** en `data/raw/<carpeta del producto>/` o, si descargaste a la carpeta de la región, `data/raw/<región>/<carpeta del producto>/` (NetCDF) y su subcarpeta `geotiff/` (GeoTIFF).
 5. **Generar los JSON** con `backend/scripts/generate_analysis.py` (ver la cadena de análisis arriba) y **verlos** en el frontend web.
 
 ## Módulos de `backend/src/opusterra/`
