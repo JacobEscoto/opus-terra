@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { RegionAnalizada } from "../types/analysis";
-  import { escalaCelda, unidadLegible } from "../data/capa";
+  import { unidadLegible } from "../data/capa";
   import { EXPLICACIONES } from "../data/textos";
   import TrendMark from "./TrendMark.svelte";
 
@@ -8,15 +8,13 @@
     region: RegionAnalizada;
     /** Unidad de la variable, viene del contrato. */
     unidad: string;
-    /** Fuente del producto, para mostrar su escala espacial cuando se conoce. */
-    fuente: string;
     /** Pendiente de la zona, para presentar el cambio acumulado. */
     pendiente: number | null;
     /** Número de años mostrados. */
     anios: number;
   }
 
-  let { region, unidad, fuente, pendiente, anios }: Props = $props();
+  let { region, unidad, pendiente, anios }: Props = $props();
 
   function cambioFormateado(): string {
     if (pendiente === null) return "Cambio no disponible";
@@ -25,14 +23,6 @@
     return `${signo}${acumulado.toFixed(1)} ${unidadLegible(unidad)} en ${anios} años`;
   }
 
-  /** Coordenadas en formato de bitácora: 22.9° S / 14.5° O. */
-  function coordenadas(valor: RegionAnalizada): string {
-    const lat = `${Math.abs(valor.lat).toFixed(1)}° ${valor.lat < 0 ? "S" : "N"}`;
-    const lon = `${Math.abs(valor.lon).toFixed(1)}° ${valor.lon < 0 ? "O" : "E"}`;
-    return `${lat} / ${lon}`;
-  }
-
-  const escala = $derived(escalaCelda(fuente));
 </script>
 
 <article class="region" class:region--neutra={!region.significativa}>
@@ -47,15 +37,6 @@
       conTexto
     />
   </header>
-
-  <details class="region__detalles">
-    <summary>Ver detalles técnicos</summary>
-    <p class="region__coords">{coordenadas(region)}</p>
-  </details>
-
-  {#if escala}
-    <p class="region__escala">Cada zona representa {escala}</p>
-  {/if}
 
   <p class="region__cambio">
     <strong>{cambioFormateado()}</strong>
@@ -103,28 +84,6 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--amber);
-  }
-
-  .region__coords {
-    margin-top: 7px;
-    font: 10px var(--mono);
-    color: var(--faint);
-  }
-
-  .region__detalles summary {
-    cursor: pointer;
-    font: 10px var(--mono);
-    color: var(--muted);
-  }
-
-  .region__detalles summary:hover,
-  .region__detalles summary:focus-visible {
-    color: var(--amber);
-  }
-
-  .region__escala {
-    font: 10px/1.5 var(--mono);
-    color: var(--faint);
   }
 
   .region__cambio {

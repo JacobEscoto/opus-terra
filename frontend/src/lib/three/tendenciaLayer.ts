@@ -29,6 +29,7 @@ let altoCelda = 0.5;
 const COLOR_FRIO = new THREE.Color("#3988c2");
 const COLOR_NEUTRO = new THREE.Color("#d9d4c8");
 const COLOR_CALIDO = new THREE.Color("#d99435");
+const COLOR_NO_SIGNIFICATIVO = "#8b929b";
 
 /** Convierte coordenadas geográficas a la convención usada por el globo. */
 export function latLonToSpherePosition(
@@ -76,8 +77,12 @@ function pintarCanvas(anio: number) {
       indiceAnio >= 0 && celda.valores_anuales?.[indiceAnio] !== undefined
         ? celda.valores_anuales[indiceAnio]
         : celda.sen_unidad_por_anio;
-    colorParaValor(valor, color);
-    contexto.fillStyle = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+    contexto.fillStyle = celda.significativa_fdr
+      ? (() => {
+          colorParaValor(valor, color);
+          return `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+        })()
+      : COLOR_NO_SIGNIFICATIVO;
     const x = ((celda.lon + 180) / 360) * TEXTURE_WIDTH;
     const y = ((90 - celda.lat) / 180) * TEXTURE_HEIGHT;
     const mitadX = (anchoCelda / 360) * TEXTURE_WIDTH / 2;
@@ -97,7 +102,7 @@ export function actualizarColores(anio: number) {
   pintarCanvas(anio);
 }
 
-/** Añade o reemplaza la esfera de celdas significativas sobre el globo. */
+/** Añade o reemplaza la esfera de tendencias y zonas sin cambio claro. */
 export function agregarCapa(
   escena: THREE.Object3D,
   celdas: CeldaTendencia[],
@@ -106,20 +111,19 @@ export function agregarCapa(
 ) {
   quitarCapa();
   sincronizarEtiquetas(escena);
-  const significativas = celdas.filter(
+  const celdasValidas = celdas.filter(
     (celda) =>
-      celda.significativa_fdr &&
       Number.isFinite(celda.lat) &&
       Number.isFinite(celda.lon) &&
       Number.isFinite(celda.sen_unidad_por_anio),
   );
-  if (significativas.length === 0) return;
+  if (celdasValidas.length === 0) return;
 
-  celdasActuales = significativas;
+  celdasActuales = celdasValidas;
   aniosActuales = anios;
   escalaMaximaActual = escalaMaxima > 0 ? escalaMaxima : 1;
-  anchoCelda = diferenciaCelda(significativas.map((celda) => celda.lon));
-  altoCelda = diferenciaCelda(significativas.map((celda) => celda.lat));
+  anchoCelda = diferenciaCelda(celdasValidas.map((celda) => celda.lon));
+  altoCelda = diferenciaCelda(celdasValidas.map((celda) => celda.lat));
 
   lienzoActual = document.createElement("canvas");
   lienzoActual.width = TEXTURE_WIDTH;

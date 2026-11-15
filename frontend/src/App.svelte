@@ -53,7 +53,6 @@
 
   /** Año mostrado en el panel cuando existan series anuales por celda. */
   let anio = $state<number>(2023);
-  let capaTendenciaVisible = $state(true);
   let mostrarAyuda = $state(false);
   let recorridoActivo = $state(false);
   let focusOn = $state<FocusOn | null>(null);
@@ -315,7 +314,6 @@
   horizontalOffset={desplazamiento}
   dataMode={parSeleccionado !== null}
   celdas={preparacion?.celdasCapa ?? []}
-  capaVisible={capaTendenciaVisible}
   {anio}
   anios={datos?.periodo.anios_completos ?? []}
   escalaMaxima={preparacion?.escalaMaxima}
@@ -384,7 +382,7 @@
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
     <div class="legend-slot">
-      <GlobeLegend {anio} mostrarAnio={anualesDisponibles} />
+  <GlobeLegend />
     </div>
     <div class="timeline-slot">
       {#if datos}
@@ -416,13 +414,8 @@
         {variablesCargadas}
         {preparacion}
         onCambiarVariable={(id) => void cambiarVariable(id)}
-        capaVisible={capaTendenciaVisible}
-        onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
         {recorridoActivo}
         onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
-        {anio}
-        {anualesDisponibles}
-        escalaMaxima={preparacion?.escalaMaxima ?? 1}
       />
     </div>
   </aside>

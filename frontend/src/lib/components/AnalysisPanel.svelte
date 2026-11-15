@@ -5,14 +5,8 @@
     VariableCatalogo,
   } from "../data/loadAnalysis";
   import VariableSelector from "./VariableSelector.svelte";
-  import {
-    aniosDelPeriodo,
-    fraseResumen,
-    unidadLegible,
-    type PreparacionCapa,
-  } from "../data/capa";
+  import { aniosDelPeriodo, fraseResumen, type PreparacionCapa } from "../data/capa";
   import type { AnalisisTendencias, ParRegiones } from "../types/analysis";
-  import Legend from "./Legend.svelte";
   import PairList from "./PairList.svelte";
   import RegionCard from "./RegionCard.svelte";
 
@@ -32,11 +26,6 @@
     variablesCargadas: string[];
     preparacion: PreparacionCapa | null;
     onCambiarVariable: (id: string) => void;
-    capaVisible: boolean;
-    onAlternarCapa: () => void;
-    anio: number;
-    anualesDisponibles: boolean;
-    escalaMaxima: number;
     recorridoActivo: boolean;
     onRecorrido: () => void;
   }
@@ -55,11 +44,6 @@
     variablesCargadas,
     preparacion,
     onCambiarVariable,
-    capaVisible,
-    onAlternarCapa,
-    anio,
-    anualesDisponibles,
-    escalaMaxima,
     recorridoActivo,
     onRecorrido,
   }: Props = $props();
@@ -86,28 +70,6 @@
     );
   }
 
-  function celdasSignificativas(conjunto: AnalisisTendencias) {
-    return conjunto.resultados_pixeles.filter(
-      (pixel) => pixel.significativa_fdr,
-    );
-  }
-
-  /** Signo de una pendiente: «+», «−» o nada cuando es cero. */
-  function signo(valor: number): string {
-    return valor > 0 ? "+" : valor < 0 ? "−" : "";
-  }
-
-  /** Pendiente anual en palabras: «+0.028 °C por año». */
-  function cambioPorAnio(pendiente: number): string {
-    const unidad = unidadLegible(datos?.unidad ?? "");
-    return `${signo(pendiente)}${Math.abs(pendiente).toFixed(3)} ${unidad} por año`;
-  }
-
-  /** Acumulado del periodo: «≈ +0.68 °C en 24 años». */
-  function cambioAcumulado(pendiente: number, anios: number): string {
-    const unidad = unidadLegible(datos?.unidad ?? "");
-    return `≈ ${signo(pendiente)}${Math.abs(pendiente * Math.max(anios - 1, 0)).toFixed(2)} ${unidad} en ${anios} años`;
-  }
 </script>
 
 <section
@@ -118,11 +80,6 @@
   <header class="panel__head">
     <div class="panel__fila">
       <p class="kicker"><span>02</span>Análisis de tendencias</p>
-      {#if datos}
-        <span class="panel__mock" title="Datos procesados del backend">
-          Datos procesados / {datos.region_nombre}
-        </span>
-      {/if}
     </div>
     <h2>{datos?.nombre_variable ?? "—"}</h2>
     <button
@@ -173,14 +130,12 @@
           <RegionCard
             region={parSeleccionado.region_a}
             unidad={datos.unidad}
-            fuente={datos.fuente}
             pendiente={pendienteDe(parSeleccionado.region_a)}
             anios={aniosCompletos}
           />
           <RegionCard
             region={parSeleccionado.region_b}
             unidad={datos.unidad}
-            fuente={datos.fuente}
             pendiente={pendienteDe(parSeleccionado.region_b)}
             anios={aniosCompletos}
           />
@@ -223,16 +178,7 @@
               {/if}
             </p>
           </div>
-          <button
-            type="button"
-            class="capa-control__boton"
-            onclick={onAlternarCapa}
-            aria-pressed={capaVisible}
-          >
-            {capaVisible ? "Ocultar" : "Mostrar"}
-          </button>
         </div>
-        <Legend {anio} disponible={anualesDisponibles} {escalaMaxima} />
         <article class="conjunto" aria-labelledby={`titulo-${datos.variable}`}>
           <div class="conjunto__cabecera">
             <div>
@@ -299,34 +245,6 @@
             </div>
           {/if}
 
-          {#if datos.variable === "merra2_t2m" || datos.variable === "mod13c2_ndvi"}
-            <div class="celdas" aria-label="Celdas T2M significativas">
-              <h4>Celdas significativas</h4>
-              {#each preparacion?.celdas ?? celdasSignificativas(datos) as pixel}
-                <div class="celda">
-                  <details class="celda__detalles">
-                    <summary>Ver coordenadas</summary>
-                    <span>{pixel.lat.toFixed(2)}°, {pixel.lon.toFixed(2)}°</span
-                    >
-                  </details>
-                  <span class="celda__valores">
-                    <span
-                      class={pixel.sen_unidad_por_anio > 0
-                        ? "celda--positiva"
-                        : pixel.sen_unidad_por_anio < 0
-                          ? "celda--negativa"
-                          : ""}
-                    >
-                      {cambioPorAnio(pixel.sen_unidad_por_anio)}
-                    </span>
-                    <span class="celda__acumulado"
-                      >{cambioAcumulado(pixel.sen_unidad_por_anio, anios)}</span
-                    >
-                  </span>
-                </div>
-              {/each}
-            </div>
-          {/if}
         </article>
       </div>
     {/if}
@@ -403,16 +321,6 @@
     font-size: 19px;
     font-weight: 500;
     letter-spacing: -0.03em;
-  }
-
-  .panel__mock {
-    flex: none;
-    padding: 3px 8px;
-    border: 1px dashed var(--amber);
-    font: 9px/1.4 var(--mono);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--amber);
   }
 
   .panel__meta {
@@ -506,21 +414,6 @@
     color: var(--faint);
   }
 
-  .capa-control__boton {
-    padding: 6px 9px;
-    border: 1px solid var(--muted);
-    background: transparent;
-    font: 10px var(--mono);
-    color: var(--ink);
-    white-space: nowrap;
-  }
-
-  .capa-control__boton:hover,
-  .capa-control__boton:focus-visible {
-    border-color: var(--amber);
-    color: var(--amber);
-  }
-
   .recorrido-control {
     display: flex;
     align-items: center;
@@ -565,7 +458,6 @@
   }
 
   .conjunto__fuente,
-  .celda,
   .estado-datos p {
     font: 10px/1.5 var(--mono);
     color: var(--faint);
@@ -596,57 +488,6 @@
 
   .estado-datos--area {
     border-left-color: var(--muted);
-  }
-
-  .celdas {
-    display: grid;
-    gap: 5px;
-  }
-
-  .celdas h4 {
-    margin: 0 0 3px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .celda {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 5px 0;
-    border-bottom: 1px solid rgb(255 255 255 / 8%);
-  }
-
-  .celda__detalles {
-    min-width: 0;
-  }
-
-  .celda__detalles summary {
-    cursor: pointer;
-    color: var(--ink);
-  }
-
-  .celda__detalles span {
-    display: block;
-    margin-top: 3px;
-    font-size: 9px;
-    color: var(--faint);
-  }
-
-  /* Cada zona: la pendiente y, debajo, el acumulado del periodo. */
-  .celda__valores {
-    display: grid;
-    justify-items: end;
-    gap: 2px;
-    text-align: right;
-  }
-
-  .celda--positiva {
-    color: var(--amber);
-  }
-
-  .celda--negativa {
-    color: var(--ink);
   }
 
   .detalle {
@@ -808,9 +649,6 @@
       min-height: 44px;
     }
 
-    .capa-control__boton {
-      min-width: 84px;
-    }
   }
 
   @media (max-width: 650px) {

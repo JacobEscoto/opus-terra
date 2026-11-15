@@ -24,13 +24,13 @@ export const EXPLICACIONES = {
 
 export const LEYENDA = {
   titulo: "Cambios claros",
-  leve: "Por debajo de lo normal",
-  fuerte: "Por encima de lo normal",
+  frio: "Se enfría",
+  neutro: "Sin cambio claro",
+  calido: "Se calienta",
+  noSignificativo: "Sin cambio significativo",
   descripcion:
-    "El azul indica disminuciones, el neutro ausencia de cambio y el ámbar aumentos claros.",
-  aria: "De disminución clara, pasando por neutro, a aumento claro",
-  colorLeve: "#3988c2",
-  colorFuerte: "#d99435",
+    "El globo muestra cambios claros en azul y ámbar; las zonas grises no tienen un cambio claro.",
+  aria: "Se enfría, sin cambio claro, se calienta; gris: sin cambio significativo",
 } as const;
 
 export const AYUDA_MAPA = {

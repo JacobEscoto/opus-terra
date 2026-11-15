@@ -36,8 +36,8 @@
     />
     <span class="timeline__valor">{fin}</span>
   </div>
-  {#if !disponible}
-    <p class="timeline__aviso">{aviso ?? 'Vista por año disponible en una versión futura'}</p>
+  {#if !disponible && aviso}
+    <p class="timeline__aviso">{aviso}</p>
   {/if}
 </div>
 

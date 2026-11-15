@@ -104,9 +104,8 @@ export function fraseResumen(datos: AnalisisTendencias): string {
 /**
  * Elige las celdas que se dibujan.
  *
- * Se incluyen las celdas significativas de ambos signos. El recorte por
-   * `|pendiente|` mantiene la lista del panel acotada sin ocultar una de las
-   * dos direcciones de cambio. El globo recibe la lista completa.
+ * El panel recibe las celdas significativas ordenadas por magnitud y limitadas.
+ * El globo recibe además las celdas no significativas para dibujarlas en gris.
  */
 export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   const significativas = datos.resultados_pixeles.filter(
@@ -114,6 +113,9 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   );
   const ordenadas = [...significativas].sort(
     (a, b) => Math.abs(b.sen_unidad_por_anio) - Math.abs(a.sen_unidad_por_anio),
+  );
+  const noSignificativas = datos.resultados_pixeles.filter(
+    (pixel) => !pixel.significativa_fdr,
   );
   const alAlza = significativas.filter(
     (pixel) => pixel.sen_unidad_por_anio > 0,
@@ -127,7 +129,8 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
     valores_anuales: pixel.valores_anuales,
   });
   const celdas: CeldaTendencia[] = seleccion.map(convertir);
-  const celdasCapa: CeldaTendencia[] = ordenadas.map(convertir);
+  // Las zonas grises se dibujan primero para que una tendencia clara gane en los bordes.
+  const celdasCapa: CeldaTendencia[] = [...noSignificativas, ...ordenadas].map(convertir);
   const limitado = significativas.length > MAXIMO_CELDAS_CAPA;
   let escalaMaxima = 0;
   for (const pixel of significativas) {

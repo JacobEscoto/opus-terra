@@ -1,17 +1,15 @@
 <script lang="ts">
   interface Props {
-    anio: number
     disponible: boolean
     escalaMaxima: number
   }
 
-  let { anio, disponible, escalaMaxima }: Props = $props()
+  let { disponible, escalaMaxima }: Props = $props()
 </script>
 
 <div class="leyenda" role="group" aria-label="Escala de cambios anuales">
   <div class="leyenda__cabeza">
     <span class="leyenda__titulo">Escala anual</span>
-    {#if disponible}<span class="leyenda__anio">Año {anio}</span>{/if}
   </div>
   <div
     class="leyenda__barra"
@@ -40,14 +38,9 @@
   }
 
   .leyenda__titulo,
-  .leyenda__anio,
   .leyenda__etiquetas {
     font: 10px var(--mono);
     color: var(--faint);
-  }
-
-  .leyenda__anio {
-    color: var(--amber);
   }
 
   .leyenda__barra {
