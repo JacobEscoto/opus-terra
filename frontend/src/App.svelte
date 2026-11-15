@@ -13,11 +13,12 @@
 
   /** Año activo en la línea de tiempo (aún no filtra la vista). */
   let anio = $state<number>(2023)
+  let capaTendenciaVisible = $state(true)
 
   /**
    * En escritorio la columna del panel queda a la derecha: un offset negativo
    * desplaza el planeta hacia la izquierda dentro del canvas (prop existente
-   * de EarthGlobe; no modificamos ese componente ni earthScene.ts). En móvil
+   * de EarthGlobe. En móvil
    * la columna es única y el planeta vuelve al centro.
    */
   let escritorio = $state(true)
@@ -72,7 +73,12 @@
 
 <!-- dataMode ilumina el planeta de forma pareja mientras un par está abierto;
      horizontalOffset lo corre a la izquierda para despejar la columna del panel. -->
-<EarthGlobe horizontalOffset={desplazamiento} dataMode={parSeleccionado !== null} />
+  <EarthGlobe
+    horizontalOffset={desplazamiento}
+    dataMode={parSeleccionado !== null}
+    celdas={carga.estado === 'listo' ? carga.datos.resultados_pixeles : []}
+    capaVisible={capaTendenciaVisible}
+  />
 
 <div class="interface">
   <header class="masthead">
@@ -99,9 +105,11 @@
         carga={carga}
         parSeleccionado={parSeleccionado}
         onSeleccionar={(id) => (idSeleccionado = id)}
-        onVolver={() => (idSeleccionado = null)}
-        onReintentar={cargar}
-      />
+          onVolver={() => (idSeleccionado = null)}
+          onReintentar={cargar}
+          capaVisible={capaTendenciaVisible}
+          onAlternarCapa={() => (capaTendenciaVisible = !capaTendenciaVisible)}
+        />
     </div>
   </aside>
 </div>
@@ -144,13 +152,12 @@
   }
 
   /* Columna única: panel debajo del masthead, línea de tiempo al final. */
-  @media (max-width: 999px) {
+  @media (max-width: 899px) {
     .interface {
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto 1fr;
       grid-template-areas:
         'masthead'
-        'rail'
         'stage';
       column-gap: 0;
     }
@@ -158,6 +165,19 @@
     .stage {
       justify-content: flex-end;
       padding-top: 18px;
+    }
+
+    .rail {
+      position: fixed;
+      right: max(17px, env(safe-area-inset-right));
+      bottom: 0;
+      left: max(17px, env(safe-area-inset-left));
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .rail-slot {
+      pointer-events: auto;
     }
   }
 

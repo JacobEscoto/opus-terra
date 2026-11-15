@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { EarthScene, type EarthTelemetry } from '../three/earthScene'
+  import { agregarCapa, quitarCapa, type CeldaTendencia } from '../three/tendenciaLayer'
 
   interface Props {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
@@ -11,13 +12,36 @@
     horizontalOffset?: number
     /** Keeps the whole globe readable when a data layer is active. */
     dataMode?: boolean
+    celdas?: CeldaTendencia[]
+    capaVisible?: boolean
   }
 
-  let { onTelemetry, onProgress, horizontalOffset = 0, dataMode = false }: Props = $props()
+  let {
+    onTelemetry,
+    onProgress,
+    horizontalOffset = 0,
+    dataMode = false,
+    celdas = [],
+    capaVisible = true,
+  }: Props = $props()
 
   let canvas: HTMLCanvasElement
   let status = $state<'loading' | 'ready' | 'error'>('loading')
   let sceneRef: EarthScene | null = null
+
+  function actualizarCapa() {
+    const scene = sceneRef
+    if (!scene || !capaVisible) {
+      quitarCapa()
+      return
+    }
+    try {
+      agregarCapa(scene.getOverlayRoot(), celdas)
+    } catch (error: unknown) {
+      console.error('[tendenciaLayer] No se pudieron crear los marcadores.', error)
+      quitarCapa()
+    }
+  }
 
   onMount(() => {
     const scene = new EarthScene({
@@ -28,6 +52,7 @@
       dataMode,
     })
     sceneRef = scene
+    actualizarCapa()
 
     scene
       .load()
@@ -41,6 +66,7 @@
 
     return () => {
       sceneRef = null
+      quitarCapa()
       scene.dispose()
     }
   })
@@ -48,6 +74,7 @@
   $effect(() => {
     sceneRef?.setHorizontalOffset(horizontalOffset)
     sceneRef?.setDataMode(dataMode)
+    actualizarCapa()
   })
 </script>
 

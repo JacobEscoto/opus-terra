@@ -416,6 +416,11 @@ export class EarthScene {
     this.handleResize()
   }
 
+  /** Punto de enganche para capas visuales que deben girar con la superficie. */
+  getOverlayRoot(): THREE.Group {
+    return this.spinGroup
+  }
+
   /** Downloads the NASA imagery and applies it to the materials. */
   async load(): Promise<void> {
     const loader = new TextureLoader(this.options.onProgress)

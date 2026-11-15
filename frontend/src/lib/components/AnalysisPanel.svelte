@@ -13,9 +13,21 @@
     onSeleccionar: (id: string) => void
     onVolver: () => void
     onReintentar: () => void
+    capaVisible: boolean
+    onAlternarCapa: () => void
   }
 
-  let { carga, parSeleccionado, onSeleccionar, onVolver, onReintentar }: Props = $props()
+  let {
+    carga,
+    parSeleccionado,
+    onSeleccionar,
+    onVolver,
+    onReintentar,
+    capaVisible,
+    onAlternarCapa,
+  }: Props = $props()
+
+  let panelExpandido = $state(false)
 
   const datos = $derived(carga.estado === 'listo' ? carga.datos : null)
   const conjuntos = $derived(datos?.analisis ?? (datos ? [datos] : []))
@@ -29,7 +41,7 @@
   }
 </script>
 
-<section class="panel" aria-label="Análisis de tendencias por pares de regiones">
+<section class="panel" class:panel--expandido={panelExpandido} aria-label="Análisis de tendencias por pares de regiones">
   <header class="panel__head">
     <div class="panel__fila">
       <p class="kicker"><span>02</span>Análisis de tendencias</p>
@@ -44,8 +56,18 @@
       <p class="panel__meta">
         {datos.variable}<span class="slash">/</span>{datos.unidad}<span class="slash">/</span>{datos.periodo.inicio}–{datos.periodo.fin}
       </p>    {/if}
+    <button
+      type="button"
+      class="panel__toggle"
+      aria-expanded={panelExpandido}
+      onclick={() => (panelExpandido = !panelExpandido)}
+    >
+      <span>{panelExpandido ? 'Cerrar panel' : 'Abrir panel'}</span>
+      <span aria-hidden="true">{panelExpandido ? '↓' : '↑'}</span>
+    </button>
   </header>
 
+  <div class="panel__contenido">
   {#if carga.estado === 'cargando'}
     <div class="estado" role="status" aria-live="polite">
       <p>Leyendo datos de análisis…</p>
@@ -79,6 +101,17 @@
     </div>
   {:else if datos}
     <div class="panel__cuerpo">
+      <div class="capa-control">
+        <div>
+          <strong class="capa-control__titulo">Marcadores T2M</strong>
+          <p class="capa-control__texto">
+            Tendencia de temperatura 1996–2026 (MERRA-2), ajustada por ENSO. Celdas con tendencia significativa tras corrección FDR. Sin pares de contraste.
+          </p>
+        </div>
+        <button type="button" class="capa-control__boton" onclick={onAlternarCapa} aria-pressed={capaVisible}>
+          {capaVisible ? 'Ocultar' : 'Mostrar'}
+        </button>
+      </div>
       <Legend />
       {#each conjuntos as conjunto (conjunto.variable)}
         <article class="conjunto" aria-labelledby={`titulo-${conjunto.variable}`}>
@@ -129,6 +162,7 @@
       {/each}
     </div>
   {/if}
+  </div>
 </section>
 
 <style>
@@ -142,6 +176,14 @@
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--hairline) transparent;
+  }
+
+  .panel__contenido {
+    min-height: 0;
+  }
+
+  .panel__toggle {
+    display: none;
   }
 
   /* Esquinas de mira, como en un instrumento óptico: ámbar arriba a la
@@ -222,6 +264,43 @@
     gap: 10px;
     padding-top: 15px;
     border-top: 1px solid var(--hairline);
+  }
+
+  .capa-control {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 11px 12px;
+    border: 1px solid var(--hairline);
+    background: rgb(255 255 255 / 3%);
+  }
+
+  .capa-control__titulo {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .capa-control__texto {
+    margin: 5px 0 0;
+    font: 10px/1.5 var(--mono);
+    color: var(--faint);
+  }
+
+  .capa-control__boton {
+    padding: 6px 9px;
+    border: 1px solid var(--muted);
+    background: transparent;
+    font: 10px var(--mono);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .capa-control__boton:hover,
+  .capa-control__boton:focus-visible {
+    border-color: var(--amber);
+    color: var(--amber);
   }
 
   .conjunto__cabecera {
@@ -379,15 +458,82 @@
     }
   }
 
-  @media (max-width: 999px) {
+  @media (max-width: 899px) {
     .panel {
-      max-height: none;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-height: min(50dvh, 430px);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      overflow: hidden;
+    }
+
+    .panel:not(.panel--expandido) .panel__contenido {
+      display: none;
+    }
+
+    .panel--expandido .panel__contenido {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--hairline) transparent;
+    }
+
+    .panel__head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .panel__fila,
+    .panel__meta {
+      display: none;
+    }
+
+    .panel__head h2 {
+      min-width: 0;
+      margin-top: 0;
+      overflow: hidden;
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel__toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      min-width: 122px;
+      min-height: 44px;
+      padding: 8px 10px;
+      border: 1px solid var(--muted);
+      background: transparent;
+      font: 10px var(--mono);
+      color: var(--ink);
+    }
+
+    .panel__toggle:hover,
+    .panel__toggle:focus-visible {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .panel :global(button) {
+      min-height: 44px;
+    }
+
+    .capa-control__boton {
+      min-width: 84px;
     }
   }
 
   @media (max-width: 650px) {
     .panel {
-      padding: 15px 16px 17px;
+      padding: 15px 16px calc(17px + env(safe-area-inset-bottom));
     }
 
     .detalle__regiones {
