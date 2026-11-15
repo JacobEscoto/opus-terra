@@ -52,11 +52,11 @@
   let sceneRef: EarthScene | null = null;
 
   function acercar() {
-    sceneRef?.zoomIn();
+    sceneRef?.zoomBy(0.8);
   }
 
   function alejar() {
-    sceneRef?.zoomOut();
+    sceneRef?.zoomBy(1.25);
   }
 
   function restablecerVista() {
@@ -158,8 +158,7 @@
       onclick={restablecerVista}
       aria-label="Restablecer vista del globo"
     >
-      <span aria-hidden="true">⌂</span>
-      <span>Vista inicial</span>
+      <span>Restablecer vista</span>
     </button>
   </div>
 </div>

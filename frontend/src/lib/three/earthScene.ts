@@ -547,6 +547,20 @@ export class EarthScene {
     this.controls.autoRotate = false;
   }
 
+  zoomBy(factor: number) {
+    const direccion = this.camera.position.clone().sub(this.controls.target);
+    const distancia = THREE.MathUtils.clamp(
+      direccion.length() * factor,
+      this.controls.minDistance,
+      this.controls.maxDistance,
+    );
+    this.camera.position
+      .copy(this.controls.target)
+      .add(direccion.setLength(distancia));
+    this.userZoomed = true;
+    this.options.onInteraction?.();
+  }
+
   zoomIn() {
     this.userZoomed = true;
     this.controls.dollyIn(1.25);

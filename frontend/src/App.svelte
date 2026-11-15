@@ -65,15 +65,17 @@
   let enlaceQueAbrioPagina = $state<HTMLElement | null>(null);
   let menuAbierto = $state(false);
 
+  /** El panel de análisis solo se muestra cuando el usuario lo pide. */
+  let panelAbierto = $state(false);
+
   /**
-   * En escritorio la columna del panel queda a la derecha: un offset negativo
-   * desplaza el planeta hacia la izquierda dentro del canvas (prop existente
-   * de EarthGlobe. En móvil
-   * la columna es única y el planeta vuelve al centro.
+   * En escritorio, con el panel abierto, la columna del panel queda a la
+   * derecha y un offset negativo desplaza el planeta a la izquierda. Con el
+   * panel cerrado, o en móvil, el planeta queda centrado.
    */
   let escritorio = $state(true);
 
-  const desplazamiento = $derived(escritorio ? -0.17 : 0);
+  const desplazamiento = $derived(escritorio && panelAbierto ? -0.17 : 0);
 
   const datos = $derived(carga.estado === "listo" ? carga.datos : null);
   const preparacion = $derived(datos ? prepararCapa(datos) : null);
@@ -122,15 +124,30 @@
       requestAnimationFrame(() => enlaceQueAbrioPagina?.focus());
   }
 
+  function abrirPanel() {
+    panelAbierto = true;
+  }
+
+  function cerrarPanel() {
+    detenerRecorrido();
+    idSeleccionado = null;
+    panelAbierto = false;
+  }
+
   function manejarEscape(evento: KeyboardEvent) {
     if (evento.key !== "Escape") return;
     if (menuAbierto) {
       menuAbierto = false;
       return;
     }
-    if (!pagina) return;
-    evento.preventDefault();
-    cerrarPagina(true);
+    if (pagina) {
+      evento.preventDefault();
+      cerrarPagina(true);
+      return;
+    }
+    if (panelAbierto) {
+      cerrarPanel();
+    }
   }
 
   function esperar(ms: number, token: number): Promise<boolean> {
@@ -250,6 +267,9 @@
     void cargarRegiones()
       .then((list) => (regiones = list))
       .catch(console.error);
+    void cargarPaises(regionActiva)
+      .then((cargados) => (paises = cargados))
+      .catch(console.error);
     void cambiarVariable(variableActiva);
     paginaDesdeHash();
     window.addEventListener("hashchange", paginaDesdeHash);
@@ -309,7 +329,7 @@
   onInteraction={detenerRecorrido}
 />
 
-<main class="interface">
+<main class="interface" class:con-panel={panelAbierto}>
   <header class="masthead">
     <span>{APP.marca}</span>
     <button
@@ -366,47 +386,59 @@
     </div>
   {/if}
 
-  <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
+  <!-- Vista inicial: solo globo + leyenda y línea de tiempo abajo a la izquierda. -->
   <div class="stage">
-    <div class="legend-slot">
-      <GlobeLegend />
-    </div>
-    <div class="timeline-slot">
+    <div class="dock">
+      <div class="legend-slot">
+        <GlobeLegend />
+      </div>
       {#if datos}
-        <TimelineControl
-          inicio={datos.periodo.inicio}
-          fin={datos.periodo.fin}
-          bind:anio
-          disponible={anualesDisponibles}
-          aviso={APP.avisoSinSerie}
-        />
+        <div class="timeline-slot">
+          <TimelineControl
+            inicio={datos.periodo.inicio}
+            fin={datos.periodo.fin}
+            bind:anio
+            disponible={anualesDisponibles}
+            aviso={APP.avisoSinSerie}
+          />
+        </div>
+      {/if}
+      {#if !panelAbierto}
+        <button type="button" class="open-panel" onclick={abrirPanel}
+          >Ver análisis</button
+        >
       {/if}
     </div>
   </div>
 
-  <!-- Columna del panel: superficie propia, sin tapar el planeta. -->
-  <aside class="rail">
-    <div class="rail-slot">
-      <AnalysisPanel
-        {carga}
-        {parSeleccionado}
-        onSeleccionar={(id) => (idSeleccionado = id)}
-        onVolver={() => (idSeleccionado = null)}
-        onReintentar={cargar}
-        {regiones}
-        {regionActiva}
-        onCambiarRegion={(id) => void cambiarRegion(id)}
-        variables={variablesDisponibles}
-        {variableActiva}
-        {variablesCargadas}
-        {preparacion}
-        onCambiarVariable={(id) => void cambiarVariable(id)}
-        {recorridoActivo}
-        onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
-        onEnfocarRegion={enfocarRegion}
-      />
-    </div>
-  </aside>
+  <!-- Columna del panel: solo existe cuando el usuario la abre. -->
+  {#if panelAbierto}
+    <aside class="rail">
+      <div class="rail-slot">
+        <button type="button" class="rail-close" onclick={cerrarPanel}
+          >Cerrar ✕</button
+        >
+        <AnalysisPanel
+          {carga}
+          {parSeleccionado}
+          onSeleccionar={(id) => (idSeleccionado = id)}
+          onVolver={() => (idSeleccionado = null)}
+          onReintentar={cargar}
+          {regiones}
+          {regionActiva}
+          onCambiarRegion={(id) => void cambiarRegion(id)}
+          variables={variablesDisponibles}
+          {variableActiva}
+          {variablesCargadas}
+          {preparacion}
+          onCambiarVariable={(id) => void cambiarVariable(id)}
+          {recorridoActivo}
+          onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
+          onEnfocarRegion={enfocarRegion}
+        />
+      </div>
+    </aside>
+  {/if}
 </main>
 
 <footer class="site-footer">© {new Date().getFullYear()} Pegaso-X</footer>
@@ -424,8 +456,15 @@
      eventos solo donde hay controles, para no bloquear la órbita del globo. */
   .interface {
     display: grid;
-    grid-template-columns: 1fr minmax(340px, 430px);
+    grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "masthead"
+      "stage";
+  }
+
+  .interface.con-panel {
+    grid-template-columns: 1fr minmax(340px, 430px);
     grid-template-areas:
       "masthead masthead"
       "stage    rail";
@@ -514,18 +553,43 @@
     min-width: 0;
   }
 
-  .rail-slot,
-  .timeline-slot {
-    pointer-events: auto;
-  }
-  .timeline-slot {
+  .dock {
     display: grid;
     gap: 10px;
-    align-items: end;
+    justify-items: start;
+    width: 100%;
   }
-  .legend-slot {
+
+  .rail-slot,
+  .legend-slot,
+  .timeline-slot {
     pointer-events: auto;
   }
+
+  .open-panel,
+  .rail-close {
+    padding: 8px 12px;
+    border: 1px solid var(--muted);
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    font: 10px var(--mono);
+    color: var(--ink);
+    pointer-events: auto;
+  }
+
+  .open-panel:hover,
+  .open-panel:focus-visible,
+  .rail-close:hover,
+  .rail-close:focus-visible {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .rail-close {
+    display: block;
+    margin: 0 0 8px auto;
+  }
+
   .page-layer {
     position: fixed;
     inset: 0;
@@ -546,7 +610,8 @@
 
   /* Columna única: panel debajo del masthead, línea de tiempo al final. */
   @media (max-width: 899px) {
-    .interface {
+    .interface,
+    .interface.con-panel {
       grid-template-columns: 1fr;
       grid-template-rows: auto minmax(260px, 1fr) auto;
       grid-template-areas:
@@ -568,8 +633,9 @@
       width: 100%;
     }
 
-    .rail-slot {
-      pointer-events: auto;
+    /* Con el panel abierto en móvil, el panel ocupa el espacio inferior. */
+    .con-panel .dock {
+      display: none;
     }
 
     .site-menu {
@@ -589,32 +655,20 @@
       padding: 15px 0 8px;
     }
 
-    /* Los controles quedan juntos en el borde inferior del espacio del globo,
-       en vez de crecer entre el masthead y el panel de análisis. */
-    .timeline-slot {
-      position: absolute;
-      right: 0;
-      bottom: 2px;
-      left: 0;
-      width: min(100%, 360px);
-      margin: 0 auto;
-      gap: 6px;
+    .dock {
+      gap: 8px;
     }
 
-    .legend-slot {
-      position: absolute;
-      top: 8px;
-      right: 0;
-      left: 0;
-      z-index: 1;
-      display: flex;
-      justify-content: center;
-    }
-
-    :global(.timeline-slot .timeline) {
+    :global(.dock .timeline) {
+      width: 100%;
+      min-width: 0;
       background: rgba(11, 18, 32, 0.48);
       border-color: rgba(237, 243, 250, 0.2);
-      box-shadow: 0 -12px 30px rgba(5, 8, 15, 0.18);
+    }
+
+    /* En móvil el pie de página chocaría con la línea de tiempo. */
+    .site-footer {
+      display: none;
     }
   }
 </style>
