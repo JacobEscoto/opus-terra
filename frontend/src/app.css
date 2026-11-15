@@ -444,6 +444,17 @@ h1 em {
   white-space: nowrap;
 }
 
+.globo-etiqueta--pais {
+  margin-top: -6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

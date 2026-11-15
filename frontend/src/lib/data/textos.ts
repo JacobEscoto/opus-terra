@@ -24,15 +24,13 @@ export const EXPLICACIONES = {
 
 export const LEYENDA = {
   titulo: "Cambios claros",
-  leve: "Cambio leve",
-  fuerte: "Cambio fuerte",
+  leve: "Por debajo de lo normal",
+  fuerte: "Por encima de lo normal",
   descripcion:
-    "Cada punto es una zona donde el cambio es claro y no parece casualidad",
-  aria: "De cambio leve a cambio fuerte",
-  // Coincide con COLOR_NEUTRO y COLOR_CALIDO en tendenciaLayer.ts.
-  colorLeve: "#d9d4c8",
+    "El azul indica disminuciones, el neutro ausencia de cambio y el ámbar aumentos claros.",
+  aria: "De disminución clara, pasando por neutro, a aumento claro",
+  colorLeve: "#3988c2",
   colorFuerte: "#d99435",
-  // pendiente: bajadas
 } as const;
 
 export const AYUDA_MAPA = {

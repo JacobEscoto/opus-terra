@@ -215,8 +215,9 @@
                 Tendencia de {datos.nombre_variable}, ajustada por ENSO.{" "}
                 {datos.pixeles_significativos_fdr.toLocaleString("es-ES")} zonas
                 donde el cambio es claro y no parece casualidad.{" "}
-                {#if datos.pares.length === 0}No encontramos zonas con cambios
-                  opuestos.{/if}
+                <br />
+                {preparacion.alAlza.toLocaleString("es-ES")} aumentaron ·
+                {preparacion.aLaBaja.toLocaleString("es-ES")} disminuyeron
               {:else}
                 Sin celdas con tendencia significativa
               {/if}

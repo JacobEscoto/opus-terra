@@ -1,0 +1,56 @@
+[
+  {
+    "nombre": "Bajo Nuevo",
+    "iso": "-99",
+    "lat": 15.792,
+    "lon": -79.846
+  },
+  {
+    "nombre": "Belice",
+    "iso": "BZ",
+    "lat": 17.202,
+    "lon": -88.713
+  },
+  {
+    "nombre": "Costa Rica",
+    "iso": "CR",
+    "lat": 10.065,
+    "lon": -84.078
+  },
+  {
+    "nombre": "El Salvador",
+    "iso": "SV",
+    "lat": 13.685,
+    "lon": -88.89
+  },
+  {
+    "nombre": "Guatemala",
+    "iso": "GT",
+    "lat": 14.982,
+    "lon": -90.497
+  },
+  {
+    "nombre": "Honduras",
+    "iso": "HN",
+    "lat": 14.795,
+    "lon": -86.888
+  },
+  {
+    "nombre": "Isla Serranilla",
+    "iso": "-99",
+    "lat": 15.864,
+    "lon": -78.638
+  },
+  {
+    "nombre": "Nicaragua",
+    "iso": "NI",
+    "lat": 12.671,
+    "lon": -85.069
+  },
+  {
+    "nombre": "Panamá",
+    "iso": "PA",
+    "lat": 8.722,
+    "lon": -80.352
+  }
+]

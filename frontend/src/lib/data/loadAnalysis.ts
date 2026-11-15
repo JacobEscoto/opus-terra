@@ -13,6 +13,7 @@ import type {
   ResultadoPixel,
   Tendencia,
 } from "../types/analysis";
+import type { EtiquetaGlobo } from "../three/etiquetasLayer";
 
 /** Variable disponible en el selector, con su JSON y su leyenda de capa. */
 export interface VariableCatalogo {
@@ -76,6 +77,26 @@ export type EstadoCarga =
   | { estado: "listo"; datos: AnalisisTendencias };
 
 const cache = new Map<string, AnalisisTendencias>();
+
+export async function cargarPaises(region: string): Promise<EtiquetaGlobo[]> {
+  try {
+    const respuesta = await fetch(`/data/${region}/paises.json`);
+    if (!respuesta.ok) return [];
+    const datos: unknown = await respuesta.json();
+    if (!Array.isArray(datos)) return [];
+    return datos
+      .filter((pais): pais is Record<string, unknown> => typeof pais === "object" && pais !== null)
+      .filter((pais) => typeof pais.nombre === "string" && typeof pais.lat === "number" && typeof pais.lon === "number")
+      .map((pais) => ({
+        texto: pais.nombre as string,
+        lat: pais.lat as number,
+        lon: pais.lon as number,
+        tipo: "pais" as const,
+      }));
+  } catch {
+    return [];
+  }
+}
 
 function fallar(mensaje: string): never {
   throw new Error(mensaje);

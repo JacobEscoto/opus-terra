@@ -14,12 +14,16 @@ export const MAXIMO_CELDAS_CAPA = 2500;
 
 /** Celdas que se pasan a la capa, con los conteos que las explican. */
 export interface PreparacionCapa {
-  /** Celdas que se pasan a `agregarCapa`. */
+  /** Celdas limitadas que se muestran en la lista del panel. */
   celdas: CeldaTendencia[];
+  /** Todas las celdas significativas que se muestran sobre el globo. */
+  celdasCapa: CeldaTendencia[];
   /** Celdas significativas que declara el JSON. */
   significativas: number;
   /** Celdas significativas con pendiente al alza. */
   alAlza: number;
+  /** Celdas significativas con pendiente a la baja. */
+  aLaBaja: number;
   /** Celdas probadas que declara el JSON. */
   probadas: number;
   /** La lista se recortó al tope de `MAXIMO_CELDAS_CAPA`. */
@@ -83,44 +87,47 @@ export function aniosDelPeriodo(datos: AnalisisTendencias): number {
  * celdas que analizar, así que la frase lo dice sin cifras inventadas.
  */
 export function fraseResumen(datos: AnalisisTendencias): string {
-  const anios = aniosDelPeriodo(datos);
   if (datos.pixeles_probados === 0) {
     return "No hay zonas analizadas: este producto es un promedio de área.";
   }
-  const cambio =
-    datos.variable === "merra2_t2m"
-      ? "se calentaron de forma clara"
-      : "mostraron un cambio claro";
-  return `En ${anios} años, ${formatearNumero(datos.pixeles_significativos_fdr)} de ${formatearNumero(
-    datos.pixeles_probados,
-  )} zonas de ${datos.region_nombre} ${cambio}.`;
+  const significativas = datos.resultados_pixeles.filter(
+    (pixel) => pixel.significativa_fdr,
+  );
+  const alAlza = significativas.filter((pixel) => pixel.sen_unidad_por_anio > 0).length;
+  const aLaBaja = significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length;
+  if (datos.variable === "merra2_t2m") {
+    return `${formatearNumero(alAlza)} de ${formatearNumero(significativas.length)} zonas se calentaron y ${formatearNumero(aLaBaja)} se enfriaron de forma clara`;
+  }
+  return `${formatearNumero(alAlza)} aumentaron y ${formatearNumero(aLaBaja)} disminuyeron`;
 }
 
 /**
  * Elige las celdas que se dibujan.
  *
  * Se incluyen las celdas significativas de ambos signos. El recorte por
- * `|pendiente|` mantiene acotado el número de puntos sin ocultar una de las
- * dos direcciones de cambio.
+   * `|pendiente|` mantiene la lista del panel acotada sin ocultar una de las
+   * dos direcciones de cambio. El globo recibe la lista completa.
  */
 export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   const significativas = datos.resultados_pixeles.filter(
     (pixel) => pixel.significativa_fdr,
   );
+  const ordenadas = [...significativas].sort(
+    (a, b) => Math.abs(b.sen_unidad_por_anio) - Math.abs(a.sen_unidad_por_anio),
+  );
   const alAlza = significativas.filter(
     (pixel) => pixel.sen_unidad_por_anio > 0,
   );
-  const ordenadas = [...alAlza].sort(
-    (a, b) => Math.abs(b.sen_unidad_por_anio) - Math.abs(a.sen_unidad_por_anio),
-  );
   const seleccion = ordenadas.slice(0, MAXIMO_CELDAS_CAPA);
-  const celdas: CeldaTendencia[] = seleccion.map((pixel) => ({
+  const convertir = (pixel: (typeof significativas)[number]): CeldaTendencia => ({
     lat: pixel.lat,
     lon: pixel.lon,
     sen_unidad_por_anio: pixel.sen_unidad_por_anio,
     significativa_fdr: pixel.significativa_fdr,
     valores_anuales: pixel.valores_anuales,
-  }));
+  });
+  const celdas: CeldaTendencia[] = seleccion.map(convertir);
+  const celdasCapa: CeldaTendencia[] = ordenadas.map(convertir);
   const limitado = significativas.length > MAXIMO_CELDAS_CAPA;
   let escalaMaxima = 0;
   for (const pixel of significativas) {
@@ -132,8 +139,10 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   }
   return {
     celdas,
+    celdasCapa,
     significativas: significativas.length,
     alAlza: alAlza.length,
+    aLaBaja: significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length,
     probadas: datos.pixeles_probados,
     limitado,
     escalaMaxima: escalaMaxima || 1,
@@ -161,9 +170,16 @@ export function descripcionCapa(
   if (datos.pixeles_probados === 0) {
     return `${entrada.tema} ${periodo} (${entrada.producto}): promedio de área, sin malla de celdas que dibujar.`;
   }
+  const significativas = datos.resultados_pixeles.filter((pixel) => pixel.significativa_fdr);
+  const alAlza = significativas.filter((pixel) => pixel.sen_unidad_por_anio > 0).length;
+  const aLaBaja = significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length;
+  const sentidos =
+    alAlza > 0 && aLaBaja > 0
+      ? ` Hay cambios en ambos sentidos: ${formatearNumero(alAlza)} aumentan y ${formatearNumero(aLaBaja)} disminuyen.`
+      : "";
   return `Tendencia de ${entrada.tema} ${periodo}, ${entrada.producto}, ajustada por ENSO. ${formatearNumero(
     datos.pixeles_significativos_fdr,
-  )} zonas de ${datos.region_nombre} donde el cambio es claro y no parece casualidad. No encontramos zonas con cambios opuestos.`;
+  )} zonas de ${datos.region_nombre} donde el cambio es claro y no parece casualidad.${sentidos}`;
 }
 
 /**
