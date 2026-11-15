@@ -101,7 +101,7 @@
     capaVisible={capaTendenciaVisible}
   />
 
-<div class="interface">
+<main class="interface">
   <header class="masthead">
     <span>OpusTerra by Pegaso-X</span>
     <p class="welcome">Explora cómo cambian la temperatura, la lluvia y la vegetación del planeta.</p>
@@ -166,7 +166,7 @@
     <p>Fuentes: NASA MERRA-2, MODIS, GPM, NOAA/KNMI.</p>
     <p>Información ambiental; no es un diagnóstico de salud.</p>
   </footer>
-</div>
+</main>
 
 <style>
   /* La .interface global es pointer-events: none; los slots reactivan los
