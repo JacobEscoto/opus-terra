@@ -52,7 +52,7 @@ La ventana común utilizada por los análisis actuales es `2000-02`–`2025-09`.
 - **Procesamiento:** los recortes de MERRA-2 se solicitan para la región de interés, no como archivos globales completos.
 - **Formatos de trabajo:** NetCDF4 y GeoTIFF cuando se necesita una capa raster.
 
-Las fuentes y sus identificadores están documentados en [`docs/data-sources.md`](docs/data-sources.md). El contrato de los JSON está descrito en [`docs/json-contract.md`](docs/json-contract.md).
+Las fuentes y sus identificadores están documentados en [`docs/data-sources.md`](docs/data-sources.md). El contrato de los JSON está descrito en [`docs/json-contract.md`](docs/json-contract.md). Los errores conocidos de la aplicación y los límites de los datos y del método están en [`docs/known-bugs.md`](docs/known-bugs.md).
 
 ---
 
