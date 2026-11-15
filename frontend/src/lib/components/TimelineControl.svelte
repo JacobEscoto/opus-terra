@@ -1,24 +1,31 @@
 <script lang="ts">
   interface PropiedadesComponente {
     /** Primer año del periodo analizado (viene del contrato). */
-    inicio: number
+    inicio: number;
     /** Último año del periodo analizado (viene del contrato). */
-    fin: number
-  /** Año activo; enlazado con App y con la capa del globo. */
-    anio: number
+    fin: number;
+    /** Año activo; enlazado con App y con la capa del globo. */
+    anio: number;
     /** El JSON de la variable trae valores por año y por celda. */
-    disponible: boolean
+    disponible: boolean;
     /** Aviso cuando no hay datos anuales que mostrar. */
-    aviso?: string
+    aviso?: string;
   }
 
-  let { inicio, fin, anio = $bindable(), disponible, aviso }: PropiedadesComponente = $props()
+  let {
+    inicio,
+    fin,
+    anio = $bindable(),
+    disponible,
+    aviso,
+  }: PropiedadesComponente = $props();
 </script>
 
 <!-- El control solo se activa cuando el JSON trae valores por año y por celda. -->
 <div class="timeline">
   <div class="timeline__cabeza">
-    <label class="timeline__etiqueta" for="timeline-anio">Línea de tiempo</label>
+    <label class="timeline__etiqueta" for="timeline-anio">Línea de tiempo</label
+    >
     <output class="timeline__anio" for="timeline-anio">Año {anio}</output>
   </div>
   <div class="timeline__fila">
@@ -81,12 +88,12 @@
     color: var(--muted);
   }
 
-  input[type='range'] {
+  input[type="range"] {
     flex: 1;
     accent-color: var(--blue);
   }
 
-  input[type='range']:disabled {
+  input[type="range"]:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }

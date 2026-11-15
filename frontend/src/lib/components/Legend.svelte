@@ -1,9 +1,9 @@
 <script lang="ts">
   interface PropiedadesComponente {
-    escalaMaxima: number
+    escalaMaxima: number;
   }
 
-  let { escalaMaxima }: PropiedadesComponente = $props()
+  let { escalaMaxima }: PropiedadesComponente = $props();
 </script>
 
 <div class="leyenda" role="group" aria-label="Escala de cambios anuales">

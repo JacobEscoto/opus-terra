@@ -146,8 +146,12 @@
   {/if}
 
   <div class="globe-tools" aria-label="Controles del globo">
-    <button type="button" onclick={acercar} aria-label="Acercar el globo">+</button>
-    <button type="button" onclick={alejar} aria-label="Alejar el globo">−</button>
+    <button type="button" onclick={acercar} aria-label="Acercar el globo"
+      >+</button
+    >
+    <button type="button" onclick={alejar} aria-label="Alejar el globo"
+      >−</button
+    >
     <button
       type="button"
       class="globe-tools__reset"

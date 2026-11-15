@@ -1,36 +1,52 @@
 <script lang="ts">
-  import type { Tendencia } from '../types/analysis'
+  import type { Tendencia } from "../types/analysis";
 
   interface PropiedadesComponente {
     /** Dirección del cambio detectado. */
-    tendencia: Tendencia
+    tendencia: Tendencia;
     /** Si es falso, se dibuja un rombo neutro (señal sin significancia). */
-    significativa: boolean
+    significativa: boolean;
     /** Muestra el nombre de la tendencia junto a la figura. */
-    conTexto?: boolean
+    conTexto?: boolean;
     /** Etiqueta alternativa (opcional) para el texto visible. */
-    texto?: string
+    texto?: string;
   }
 
-  let { tendencia, significativa, conTexto = false, texto }: PropiedadesComponente = $props()
+  let {
+    tendencia,
+    significativa,
+    conTexto = false,
+    texto,
+  }: PropiedadesComponente = $props();
 
   const etiqueta = $derived(
-    texto ?? (significativa ? (tendencia === 'alza' ? 'Alza' : 'Bajada') : 'Sin señal clara')
-  )
+    texto ??
+      (significativa
+        ? tendencia === "alza"
+          ? "Alza"
+          : "Bajada"
+        : "Sin señal clara"),
+  );
 
   /** Descripción para lectores de pantalla: color + forma + texto. */
   const descripcion = $derived(
     significativa
-       ? `Tendencia al ${tendencia === 'alza' ? 'alza' : 'baja'}, cambio claro`
-       : 'Cambio poco claro'
-  )
+      ? `Tendencia al ${tendencia === "alza" ? "alza" : "baja"}, cambio claro`
+      : "Cambio poco claro",
+  );
 </script>
 
-<span class="marca" class:marca--texto={conTexto} role="img" aria-label={descripcion} title={descripcion}>
+<span
+  class="marca"
+  class:marca--texto={conTexto}
+  role="img"
+  aria-label={descripcion}
+  title={descripcion}
+>
   <i
     class="figura"
-    class:figura--alza={significativa && tendencia === 'alza'}
-    class:figura--bajada={significativa && tendencia === 'bajada'}
+    class:figura--alza={significativa && tendencia === "alza"}
+    class:figura--bajada={significativa && tendencia === "bajada"}
     class:figura--neutra={!significativa}
     aria-hidden="true"
   ></i>

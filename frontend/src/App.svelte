@@ -286,7 +286,10 @@
     name="description"
     content="Globo 3D con datos satelitales de la NASA para explorar tendencias de temperatura, lluvia y vegetación del planeta de forma clara y verificable."
   />
-  <meta property="og:title" content="OpusTerra — Cambios ambientales en el planeta" />
+  <meta
+    property="og:title"
+    content="OpusTerra — Cambios ambientales en el planeta"
+  />
   <meta
     property="og:description"
     content="Globo 3D con datos satelitales de la NASA para explorar tendencias de temperatura, lluvia y vegetación del planeta de forma clara y verificable."
@@ -366,7 +369,7 @@
   <!-- Columna del planeta: el globo vive detrás, aquí solo va la línea de tiempo. -->
   <div class="stage">
     <div class="legend-slot">
-  <GlobeLegend />
+      <GlobeLegend />
     </div>
     <div class="timeline-slot">
       {#if datos}

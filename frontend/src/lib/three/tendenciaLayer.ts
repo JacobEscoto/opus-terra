@@ -16,7 +16,10 @@ const LAYER_RADIUS = 1.003;
 const TEXTURE_WIDTH = 4096;
 const TEXTURE_HEIGHT = 2048;
 
-let capaActual: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> | null = null;
+let capaActual: THREE.Mesh<
+  THREE.SphereGeometry,
+  THREE.MeshBasicMaterial
+> | null = null;
 let texturaActual: THREE.CanvasTexture | null = null;
 let lienzoActual: HTMLCanvasElement | null = null;
 let celdasActuales: CeldaTendencia[] = [];
@@ -55,7 +58,9 @@ function colorParaValor(valor: number, color: THREE.Color): THREE.Color {
 }
 
 function diferenciaCelda(valores: number[]): number {
-  const unicos = [...new Set(valores.filter(Number.isFinite))].sort((a, b) => a - b);
+  const unicos = [...new Set(valores.filter(Number.isFinite))].sort(
+    (a, b) => a - b,
+  );
   let minima = Infinity;
   for (let indice = 1; indice < unicos.length; indice += 1) {
     const diferencia = unicos[indice] - unicos[indice - 1];
@@ -84,8 +89,8 @@ function pintarCanvas(anio: number) {
       : COLOR_NO_SIGNIFICATIVO;
     const x = ((celda.lon + 180) / 360) * TEXTURE_WIDTH;
     const y = ((90 - celda.lat) / 180) * TEXTURE_HEIGHT;
-    const mitadX = (anchoCelda / 360) * TEXTURE_WIDTH / 2;
-    const mitadY = (altoCelda / 180) * TEXTURE_HEIGHT / 2;
+    const mitadX = ((anchoCelda / 360) * TEXTURE_WIDTH) / 2;
+    const mitadY = ((altoCelda / 180) * TEXTURE_HEIGHT) / 2;
     const izquierda = Math.floor(x - mitadX);
     const arriba = Math.floor(y - mitadY);
     const derecha = Math.max(izquierda + 1, Math.ceil(x + mitadX));

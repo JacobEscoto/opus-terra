@@ -1,17 +1,22 @@
 <script lang="ts">
-  import type { VariableCatalogo } from '../data/loadAnalysis'
+  import type { VariableCatalogo } from "../data/loadAnalysis";
 
   interface PropiedadesComponente {
     /** Variables disponibles en el catálogo. */
-    variables: VariableCatalogo[]
+    variables: VariableCatalogo[];
     /** Identificador de la variable activa. */
-    activa: string
+    activa: string;
     /** Variables whose JSON is already loaded (cached). */
-    cargadas?: string[]
-    onCambiar: (id: string) => void
+    cargadas?: string[];
+    onCambiar: (id: string) => void;
   }
 
-  let { variables, activa, cargadas = [], onCambiar }: PropiedadesComponente = $props()
+  let {
+    variables,
+    activa,
+    cargadas = [],
+    onCambiar,
+  }: PropiedadesComponente = $props();
 </script>
 
 <!-- Selector de variables: cada botón pide el JSON de su variable y la usa
@@ -27,7 +32,9 @@
     >
       <span class="selector__etiqueta">{variable.etiqueta}</span>
       {#if !cargadas.includes(variable.id)}
-        <span class="selector__estado" title="Su JSON se leerá al seleccionarla">↓</span>
+        <span class="selector__estado" title="Su JSON se leerá al seleccionarla"
+          >↓</span
+        >
       {/if}
     </button>
   {/each}

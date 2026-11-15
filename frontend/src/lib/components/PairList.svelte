@@ -1,43 +1,55 @@
 <script lang="ts">
-  import type { ParRegiones, ResultadoPixel } from '../types/analysis'
-  import { unidadLegible } from '../data/capa'
-  import TrendMark from './TrendMark.svelte'
+  import type { ParRegiones, ResultadoPixel } from "../types/analysis";
+  import { unidadLegible } from "../data/capa";
+  import TrendMark from "./TrendMark.svelte";
 
   interface PropiedadesComponente {
-    pares: ParRegiones[]
+    pares: ParRegiones[];
     /** Identificador del par resaltado (null = ninguno). */
-    seleccionadoId: string | null
-    onSeleccionar: (id: string) => void
-    resultados: ResultadoPixel[]
-    unidad: string
-    anios: number
+    seleccionadoId: string | null;
+    onSeleccionar: (id: string) => void;
+    resultados: ResultadoPixel[];
+    unidad: string;
+    anios: number;
   }
 
-  let { pares, seleccionadoId, onSeleccionar, resultados, unidad, anios }: PropiedadesComponente = $props()
-  let cantidadVisible = $state(80)
-  let referenciaPares: ParRegiones[] | null = null
+  let {
+    pares,
+    seleccionadoId,
+    onSeleccionar,
+    resultados,
+    unidad,
+    anios,
+  }: PropiedadesComponente = $props();
+  let cantidadVisible = $state(80);
+  let referenciaPares: ParRegiones[] | null = null;
 
   $effect(() => {
     if (pares !== referenciaPares) {
-      referenciaPares = pares
-      cantidadVisible = 80
+      referenciaPares = pares;
+      cantidadVisible = 80;
     }
-  })
+  });
 
   const pendientes = $derived(
-    new Map(resultados.map((pixel) => [`${pixel.lat}:${pixel.lon}`, pixel.sen_unidad_por_anio])),
-  )
-  const paresVisibles = $derived(pares.slice(0, cantidadVisible))
+    new Map(
+      resultados.map((pixel) => [
+        `${pixel.lat}:${pixel.lon}`,
+        pixel.sen_unidad_por_anio,
+      ]),
+    ),
+  );
+  const paresVisibles = $derived(pares.slice(0, cantidadVisible));
 
-  function pendienteDe(region: ParRegiones['region_a']): number | null {
-    return pendientes.get(`${region.lat}:${region.lon}`) ?? null
+  function pendienteDe(region: ParRegiones["region_a"]): number | null {
+    return pendientes.get(`${region.lat}:${region.lon}`) ?? null;
   }
 
-  function cambio(region: ParRegiones['region_a']): string {
-    const pendiente = pendienteDe(region)
-    if (pendiente === null) return 'Cambio no disponible'
-    const acumulado = pendiente * Math.max(anios - 1, 0)
-    return `${acumulado > 0 ? '+' : ''}${acumulado.toFixed(1)} ${unidadLegible(unidad)} en ${anios} años`
+  function cambio(region: ParRegiones["region_a"]): string {
+    const pendiente = pendienteDe(region);
+    if (pendiente === null) return "Cambio no disponible";
+    const acumulado = pendiente * Math.max(anios - 1, 0);
+    return `${acumulado > 0 ? "+" : ""}${acumulado.toFixed(1)} ${unidadLegible(unidad)} en ${anios} años`;
   }
 </script>
 
@@ -51,16 +63,26 @@
         aria-pressed={par.id === seleccionadoId}
         onclick={() => onSeleccionar(par.id)}
       >
-        <span class="par__num" aria-hidden="true">{String(indice + 1).padStart(2, '0')}</span>
+        <span class="par__num" aria-hidden="true"
+          >{String(indice + 1).padStart(2, "0")}</span
+        >
         <span class="par__cuerpo">
           <span class="par__fila">
             <span class="par__nombre">{par.region_a.nombre}</span>
-            <TrendMark tendencia={par.region_a.tendencia} significativa={par.region_a.significativa} conTexto />
+            <TrendMark
+              tendencia={par.region_a.tendencia}
+              significativa={par.region_a.significativa}
+              conTexto
+            />
             <span class="par__cambio">{cambio(par.region_a)}</span>
           </span>
           <span class="par__fila">
             <span class="par__nombre">{par.region_b.nombre}</span>
-            <TrendMark tendencia={par.region_b.tendencia} significativa={par.region_b.significativa} conTexto />
+            <TrendMark
+              tendencia={par.region_b.tendencia}
+              significativa={par.region_b.significativa}
+              conTexto
+            />
             <span class="par__cambio">{cambio(par.region_b)}</span>
           </span>
         </span>
@@ -72,7 +94,9 @@
 {#if cantidadVisible < pares.length}
   <div class="pares__mas">
     <p>Mostrando {cantidadVisible} de {pares.length} comparaciones.</p>
-    <button type="button" onclick={() => (cantidadVisible += 80)}>Mostrar más</button>
+    <button type="button" onclick={() => (cantidadVisible += 80)}
+      >Mostrar más</button
+    >
   </div>
 {/if}
 
@@ -98,7 +122,7 @@
   }
 
   .par::before {
-    content: '';
+    content: "";
     position: absolute;
     left: -1px;
     top: 0;
@@ -166,7 +190,9 @@
     font: 10px var(--mono);
   }
 
-  .pares__mas p { margin: 0; }
+  .pares__mas p {
+    margin: 0;
+  }
 
   .pares__mas button {
     justify-self: start;

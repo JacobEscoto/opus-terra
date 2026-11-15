@@ -5,7 +5,11 @@
     VariableCatalogo,
   } from "../data/loadAnalysis";
   import VariableSelector from "./VariableSelector.svelte";
-  import { aniosDelPeriodo, fraseResumen, type PreparacionCapa } from "../data/capa";
+  import {
+    aniosDelPeriodo,
+    fraseResumen,
+    type PreparacionCapa,
+  } from "../data/capa";
   import type { AnalisisTendencias, ParRegiones } from "../types/analysis";
   import PairList from "./PairList.svelte";
   import RegionCard from "./RegionCard.svelte";
@@ -71,7 +75,6 @@
       conjunto.limitacion?.includes("area-promedio") === true
     );
   }
-
 </script>
 
 <section
@@ -256,7 +259,6 @@
               </p>
             </div>
           {/if}
-
         </article>
       </div>
     {/if}
@@ -660,7 +662,6 @@
     .panel :global(button) {
       min-height: 44px;
     }
-
   }
 
   @media (max-width: 650px) {

@@ -72,8 +72,16 @@ export async function cargarPaises(region: string): Promise<EtiquetaGlobo[]> {
     const datos: unknown = await respuesta.json();
     if (!Array.isArray(datos)) return [];
     return datos
-      .filter((pais): pais is Record<string, unknown> => typeof pais === "object" && pais !== null)
-      .filter((pais) => typeof pais.nombre === "string" && typeof pais.lat === "number" && typeof pais.lon === "number")
+      .filter(
+        (pais): pais is Record<string, unknown> =>
+          typeof pais === "object" && pais !== null,
+      )
+      .filter(
+        (pais) =>
+          typeof pais.nombre === "string" &&
+          typeof pais.lat === "number" &&
+          typeof pais.lon === "number",
+      )
       .map((pais) => ({
         texto: pais.nombre as string,
         lat: pais.lat as number,

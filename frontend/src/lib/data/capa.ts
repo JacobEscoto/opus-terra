@@ -93,8 +93,12 @@ export function fraseResumen(datos: AnalisisTendencias): string {
   const significativas = datos.resultados_pixeles.filter(
     (pixel) => pixel.significativa_fdr,
   );
-  const alAlza = significativas.filter((pixel) => pixel.sen_unidad_por_anio > 0).length;
-  const aLaBaja = significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length;
+  const alAlza = significativas.filter(
+    (pixel) => pixel.sen_unidad_por_anio > 0,
+  ).length;
+  const aLaBaja = significativas.filter(
+    (pixel) => pixel.sen_unidad_por_anio < 0,
+  ).length;
   if (datos.variable === "merra2_t2m") {
     return `${formatearNumero(alAlza)} de ${formatearNumero(significativas.length)} zonas se calentaron y ${formatearNumero(aLaBaja)} se enfriaron de forma clara`;
   }
@@ -121,7 +125,9 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
     (pixel) => pixel.sen_unidad_por_anio > 0,
   );
   const seleccion = ordenadas.slice(0, MAXIMO_CELDAS_CAPA);
-  const convertir = (pixel: (typeof significativas)[number]): CeldaTendencia => ({
+  const convertir = (
+    pixel: (typeof significativas)[number],
+  ): CeldaTendencia => ({
     lat: pixel.lat,
     lon: pixel.lon,
     sen_unidad_por_anio: pixel.sen_unidad_por_anio,
@@ -130,7 +136,9 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
   });
   const celdas: CeldaTendencia[] = seleccion.map(convertir);
   // Las zonas grises se dibujan primero para que una tendencia clara gane en los bordes.
-  const celdasCapa: CeldaTendencia[] = [...noSignificativas, ...ordenadas].map(convertir);
+  const celdasCapa: CeldaTendencia[] = [...noSignificativas, ...ordenadas].map(
+    convertir,
+  );
   const limitado = significativas.length > MAXIMO_CELDAS_CAPA;
   let escalaMaxima = 0;
   for (const pixel of significativas) {
@@ -145,7 +153,8 @@ export function prepararCapa(datos: AnalisisTendencias): PreparacionCapa {
     celdasCapa,
     significativas: significativas.length,
     alAlza: alAlza.length,
-    aLaBaja: significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length,
+    aLaBaja: significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0)
+      .length,
     probadas: datos.pixeles_probados,
     limitado,
     escalaMaxima: escalaMaxima || 1,
@@ -164,7 +173,12 @@ export function entradaDe(
   return CATALOGO.find((variable) => variable.id === datos.variable);
 }
 
-/** Texto de la capa de marcadores, con los conteos reales del JSON. */
+/**
+ * Texto de la capa de marcadores, con los conteos reales del JSON.
+ *
+ * También describe el caso sin pares (píxeles significativos todos en el mismo
+ * sentido), para que AnalysisPanel no necesite frases fijas.
+ */
 export function descripcionCapa(
   datos: AnalisisTendencias,
   entrada: VariableCatalogo,
@@ -173,16 +187,50 @@ export function descripcionCapa(
   if (datos.pixeles_probados === 0) {
     return `${entrada.tema} ${periodo} (${entrada.producto}): promedio de área, sin malla de celdas que dibujar.`;
   }
-  const significativas = datos.resultados_pixeles.filter((pixel) => pixel.significativa_fdr);
-  const alAlza = significativas.filter((pixel) => pixel.sen_unidad_por_anio > 0).length;
-  const aLaBaja = significativas.filter((pixel) => pixel.sen_unidad_por_anio < 0).length;
+  const significativas = datos.resultados_pixeles.filter(
+    (pixel) => pixel.significativa_fdr,
+  );
+  const alAlza = significativas.filter(
+    (pixel) => pixel.sen_unidad_por_anio > 0,
+  ).length;
+  const aLaBaja = significativas.filter(
+    (pixel) => pixel.sen_unidad_por_anio < 0,
+  ).length;
   const sentidos =
     alAlza > 0 && aLaBaja > 0
       ? ` Hay cambios en ambos sentidos: ${formatearNumero(alAlza)} aumentan y ${formatearNumero(aLaBaja)} disminuyen.`
-      : "";
+      : alAlza > 0
+        ? ` Todas las zonas claras aumentaron (${formatearNumero(alAlza)}); no hay pares de sentidos opuestos.`
+        : aLaBaja > 0
+          ? ` Todas las zonas claras disminuyeron (${formatearNumero(aLaBaja)}); no hay pares de sentidos opuestos.`
+          : "";
   return `Tendencia de ${entrada.tema} ${periodo}, ${entrada.producto}, ajustada por ENSO. ${formatearNumero(
     datos.pixeles_significativos_fdr,
   )} zonas de ${datos.region_nombre} donde el cambio es claro y no parece casualidad.${sentidos}`;
+}
+
+/**
+ * Frase corta para el panel cuando hay píxeles significativos pero no hay
+ * pares de tendencias opuestas (todos van en el mismo sentido).
+ *
+ * Se usa en AnalysisPanel en lugar de texto fijo, para que el mensaje sea
+ * consistente con los datos del JSON.
+ */
+export function frasesinPares(datos: AnalisisTendencias): string {
+  const significativas = datos.resultados_pixeles.filter(
+    (p) => p.significativa_fdr,
+  );
+  const alAlza = significativas.filter((p) => p.sen_unidad_por_anio > 0).length;
+  const aLaBaja = significativas.filter(
+    (p) => p.sen_unidad_por_anio < 0,
+  ).length;
+  if (alAlza > 0 && aLaBaja === 0) {
+    return `${formatearNumero(datos.pixeles_significativos_fdr)} zonas con cambio claro, todas en alza; no hay zonas con descenso para formar un par.`;
+  }
+  if (aLaBaja > 0 && alAlza === 0) {
+    return `${formatearNumero(datos.pixeles_significativos_fdr)} zonas con cambio claro, todas a la baja; no hay zonas en alza para formar un par.`;
+  }
+  return `${formatearNumero(datos.pixeles_significativos_fdr)} zonas con cambio claro, pero los pares encontrados no superan el umbral de contraste.`;
 }
 
 /**

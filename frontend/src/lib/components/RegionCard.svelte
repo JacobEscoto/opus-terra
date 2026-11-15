@@ -15,13 +15,8 @@
     onEnfocar?: () => void;
   }
 
-  let {
-    region,
-    unidad,
-    pendiente,
-    anios,
-    onEnfocar,
-  }: PropiedadesComponente = $props();
+  let { region, unidad, pendiente, anios, onEnfocar }: PropiedadesComponente =
+    $props();
 
   function cambioFormateado(): string {
     if (pendiente === null) return "Cambio no disponible";
@@ -29,7 +24,6 @@
     const signo = acumulado > 0 ? "+" : "";
     return `${signo}${acumulado.toFixed(1)} ${unidadLegible(unidad)} en ${anios} años`;
   }
-
 </script>
 
 <article class="region" class:region--neutra={!region.significativa}>
