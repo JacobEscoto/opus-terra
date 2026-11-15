@@ -1,152 +1,110 @@
-# Nuestra idea para el reto de la NASA
+# Trend Detective
 
-> Documento para el equipo. Está escrito en lenguaje simple a propósito: la idea es que todos entendamos qué vamos a hacer y por qué.
+**El globo terráqueo 3D que revela dónde el planeta cambia en direcciones opuestas, comprueba que el cambio es real y explica qué lo provoca.**
+
+NASA Space Apps 2026 · Honduras
 
 ---
 
-## 1. El reto en pocas palabras
+## El reto
 
-La NASA nos pide hacer un software que muestre **cómo está cambiando la Tierra con el paso del tiempo**, usando datos de sus satélites. No basta con dibujar mapas bonitos. Tenemos que responder cuatro preguntas:
+La NASA nos pide construir un software que muestre **cómo está cambiando la Tierra con el paso del tiempo** usando datos de sus satélites. No basta con dibujar mapas bonitos. Hay que responder cuatro preguntas:
 
 1. **¿Qué está cambiando?**
 2. **¿Dónde?**
 3. **¿Cuánto?**
 4. **¿Es un cambio real o pudo ser casualidad?**
 
-Hay un detalle importante: una misma causa puede tener efectos **opuestos** en distintas regiones. Por ejemplo, un mismo fenómeno puede traer más lluvia a un lugar y sequía a otro. El reto quiere que descubramos y expliquemos esos contrastes.
+Y hay un detalle que lo cambia todo: **una misma causa puede tener efectos opuestos en distintas regiones**. Un mismo fenómeno puede traer más lluvia a un lugar y sequía a otro. El reto pide descubrir y explicar esos contrastes.
 
 ---
 
-## 2. Nuestra idea, en una frase
+## El problema que resolvemos
 
-**Un globo terráqueo 3D que encuentra los lugares del planeta donde las cosas cambian en direcciones contrarias, comprueba que el cambio es real y explica qué causa común lo provoca.**
+Hoy existen mapas y visores que muestran colores sobre el planeta, e incluso mapas de tendencias. Pero les falta lo más importante:
 
----
+- **No señalan dónde mirar.** El usuario tiene que saber de antemano qué región le interesa.
+- **No explican el porqué.** Muestran *que* algo cambia, no *por qué* dos lugares se comportan de forma contraria.
+- **No distinguen lo real de la casualidad.** Un vaivén natural del clima se ve igual que una tendencia nueva y significativa.
+- **No hablan en lenguaje claro.** Suelen dejar al usuario frente a números sueltos sin contexto.
 
-## 3. Cómo lo vería una persona que usa el programa
-
-1. Abre la página web y ve un globo 3D con colores. Cada color indica si algo está subiendo o bajando en esa zona.
-2. Las zonas donde el cambio **no es confiable** aparecen marcadas como tales. Preferimos decir "no estamos seguros" antes que exagerar.
-3. Mueve una línea de tiempo y ve cómo fue evolucionando el planeta año tras año.
-4. El programa le propone **pares de regiones con cambios opuestos**: una donde algo sube y otra donde baja.
-5. Al elegir un par, aparece un panel que compara las dos regiones lado a lado, con una explicación corta y sencilla de por qué cambian distinto.
-6. Una tarjeta le explica qué significa ese nivel para las personas, usando las guías de la Organización Mundial de la Salud (OMS).
+**Trend Detective** cierra esas cuatro brechas: encuentra los contrastes por sí solo, los explica, separa la señal real del ruido natural y lo cuenta con palabras normales.
 
 ---
 
-## 4. ¿Qué lo hace diferente de lo que ya existe?
+## Qué hace la aplicación
 
-Ya existen herramientas que muestran mapas con colores y hasta tendencias. Si solo hacemos eso, nos van a decir que es "más de lo mismo". Lo que nos separa es esto:
-
-- **Busca los contrastes por sí solo.** El usuario no tiene que adivinar dónde mirar; el programa le muestra dónde hay cambios opuestos.
-- **Explica el porqué.** Revisa si una causa común, como el fenómeno de El Niño, explica por qué dos regiones cambian de forma contraria.
-- **Separa lo natural de lo nuevo.** Quita el efecto de esa causa natural para ver si el cambio sigue existiendo. Así respondemos "¿esto es real o solo es un vaivén normal del clima?".
-- **Habla claro.** Cada resultado viene con una explicación en palabras normales, no con números sueltos.
-
-Si alguien nos pregunta en qué se diferencia de Google Earth: **Google Earth muestra cómo se ve la Tierra; nosotros mostramos qué está cambiando y si ese cambio es real.**
-
----
-
-## 5. ¿Qué dato vamos a usar?
-
-Para no hacer un proyecto demasiado grande, elegimos **una sola variable principal**:
-
-- **Contaminación del aire** (principalmente el dióxido de nitrógeno, que viene del tráfico y la industria).
-
-Hay un detalle por confirmar: antes de comprometernos, vamos a comprobar con datos de prueba que esta variable realmente muestre regiones con cambios opuestos. Si no aparecen contrastes claros, cambiamos a **la lluvia**, que suele mostrar mejor ese efecto. La idea del proyecto no cambia, solo el dato.
+- **Globo 3D interactivo.** Los colores muestran, región por región, si la variable está subiendo o bajando. Al abrir un par, la atmósfera se ilumina de forma pareja para señalar el contraste.
+- **Línea de tiempo.** Mueve el periodo activo y observa cómo evoluciona el planeta año tras año.
+- **Pares de contraste automáticos.** La app propone regiones con tendencias opuestas: una donde algo sube y otra donde baja. No tienes que adivinar dónde mirar.
+- **Panel comparativo.** Al elegir un par, un panel compara ambas regiones lado a lado con una explicación corta y sencilla de por qué cambian distinto.
+- **Marcas de confiabilidad.** Cuando la señal no alcanza significancia estadística, se marca como tal. Preferimos decir "no estamos seguros" antes que exagerar.
+- **Contexto de salud.** Una tarjeta explica qué significa ese nivel para las personas, con las guías de la Organización Mundial de la Salud (OMS). Sin diagnósticos.
+- **Sin instalación.** Se abre en el navegador, funciona en computadora y celular.
 
 ---
 
-## 6. ¿Y la salud, las inundaciones y las costas?
+## Datos que usamos
 
-Estos temas salieron en las conversaciones y son importantes. Así los vamos a tratar:
+Solo datos reales y verificables de la NASA y NOAA, recortados para la región de interés:
 
-| Tema | Qué hacemos con él |
-|---|---|
-| **Contaminación del aire** | Es el centro del proyecto. |
-| **Salud** | La NASA no mide enfermedades ni síntomas. La usamos como **contexto**: explicamos por qué importa cada nivel de contaminación con las guías de la OMS. No damos diagnósticos ni decimos cómo afecta a una persona en particular. |
-| **Inundaciones y costas** | Son una gran segunda etapa. Las mencionamos en la presentación como **lo que sigue**, pero no las construimos ahora. |
+| Variable | Producto | Versión | Resolución | Cobertura |
+|----------|----------|---------|------------|-----------|
+| Precipitación observada | GPM IMERG | 07 | 0.1° × 0.1° | 1998-01 → 2025-09 |
+| Precipitación modelada (PRECTOTCORR) | MERRA-2 flux (M2TMNXFLX) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
+| Temperatura a nivel del suelo (T2M) | MERRA-2 superficie (M2TMNXSLV) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
+| Vegetación (NDVI) | MODIS MOD13C2 | 061 | 0.05° × 0.05° | 2000-02 → 2026-10 |
+| Índice Niño 3.4 (ONI) | NOAA / KNMI | — | — | 1996 → presente |
 
-La razón es simple: es mejor entregar algo pequeño que funcione bien que algo enorme que quede a medias. A los jurados les importa que el problema esté bien planteado, que la solución funcione y que tenga sentido.
+- **Centro de distribución:** NASA GES DISC. **Acceso:** Earthdata Search y OPeNDAP con recorte regional.
+- **Ventana común de análisis:** 2000-02-01 a 2025-09-01, la intersección de las tres coberturas, para que todas las variables sean directamente comparables.
+- **Formatos de entrega:** NetCDF como formato principal y GeoTIFF como respaldo.
 
----
-
-## 7. Puntos clave para no desviarnos
-
-1. **Una sola pregunta:** ¿dónde cambian las cosas en direcciones opuestas y por qué?
-2. **Una sola variable principal** para el prototipo.
-3. **Todo dato del análisis viene de la NASA** (o de sus socios en el reto).
-4. **Cada pantalla responde:** qué cambia, dónde, cuánto y si es real.
-5. **Cualquier idea nueva pasa un filtro:** si no ayuda a responder la pregunta principal, se anota para "trabajo futuro".
-6. **Decir siempre cuando algo es una suposición**, no un resultado comprobado.
+> Las citas requeridas por producto y el detalle de cobertura están en [`docs/data-sources.md`](docs/data-sources.md). Las limitaciones del método están en [`docs/limitations.md`](docs/limitations.md).
 
 ---
 
-## 8. Qué vamos a entregar
+## Cómo lo construimos
 
-- Una **página web** que se abre con un enlace. No hay que instalar nada, funciona en computadora y también en celular.
-- Un **video corto de respaldo**, por si falla el internet durante la presentación.
-- Una **presentación de 3 a 5 minutos** con cuatro partes: el problema, la solución, el impacto y cómo podría crecer para ayudar en todo el mundo.
+| Capa | Tecnología |
+|------|-----------|
+| Interfaz | Svelte 5 + TypeScript + Vite |
+| Globo 3D | three.js |
+| Datos | Python + `earthaccess` + `pydap` (OPeNDAP) + `xarray` / `rioxarray` |
+| Formatos | NetCDF4 (principal) + GeoTIFF (respaldo) |
 
----
-
-## 9. Cómo puede aportar cada quien
-
-No hace falta programar para ser clave en este proyecto.
-
-- **Investigación:** buscar qué políticas o hechos explican los cambios en las regiones que elijamos, y reunir fuentes confiables con enlace y fecha.
-- **Análisis:** revisar que los resultados tengan sentido y anotar qué es firme y qué es solo una hipótesis.
-- **Diseño:** dibujar las pantallas, elegir colores que todos puedan distinguir (sin depender solo de rojo y verde) y cuidar que todo se entienda rápido.
-- **Presentación:** escribir el discurso, preparar las diapositivas y ensayar con el equipo.
-- **Código:** a cargo de quien programa, con apoyo de todos para probar y dar opiniones.
+El backend descarga solo las variables y celdas de la región mediante OPeNDAP, en lugar de bajar archivos globales de cientos de megabytes. El detalle de cada decisión de diseño está en [`docs/decisions/`](docs/decisions/).
 
 ---
 
-## 10. Recursos que nos pueden servir
+## En quién está pensado
 
-Estos recursos vienen en la página oficial del reto. Los ordenamos según qué tan útiles creemos que serán para esta idea.
-
-### Los que más vamos a usar
-
-- **Giovanni** (https://giovanni.gsfc.nasa.gov): una herramienta de la NASA donde eliges una variable (contaminación, lluvia, temperatura...) y te muestra cómo cambió con el tiempo. Es ideal para **explorar antes de programar** y comprobar si una idea tiene datos que la respalden.
-- **KNMI Climate Explorer** (https://climexp.knmi.nl): una web de los Países Bajos para explorar datos del clima. Sirve para consultar el índice de El Niño y comparar con otras variables sin escribir código. Muy útil para el equipo que investiga.
-- **Artículo sobre pruebas para detectar tendencias:** explica cómo saber si un cambio en el tiempo es real. Es la base de nuestra parte científica; conviene que alguien del equipo lo lea y haga un resumen de una hoja.
-- **Guía sobre significancia estadística:** explica qué significa que un resultado sea "significativo" y no casualidad. Va de la mano con el artículo anterior.
-- **Artículo sobre clorofila en zonas costeras:** es un ejemplo completo de cómo se hace una serie de tiempo y se comprueba que es significativa. Podemos copiar su forma de explicar el método.
-- **AppEEARS** (https://appeears.earthdatacloud.nasa.gov): permite pedir datos de un punto o de una zona y recibir la serie de tiempo ya armada. Es útil para preparar datos con anticipación, aunque no responde al instante.
-- **Climate Data Online (CDO)** (https://www.ncei.noaa.gov/cdo-web/): datos de estaciones de medición en tierra. Sirve para **comprobar** que lo que dicen los satélites coincide con lo que miden los instrumentos reales.
-
-### Los que dejaríamos para después
-
-- **Hydrology Time Series:** solo nos serviría si decidimos usar la humedad del suelo o el agua de los ríos como variable.
-- **SWOT:** mide la altura del agua en lagos, ríos y mares, pero es una misión reciente y no tiene suficientes años de historia para ver tendencias largas.
-- **Radarsat (RCM), Geo.ca y el tutorial de radar:** están más enfocados en Canadá o en mapear inundaciones con radar. Son interesantes para la segunda etapa, pero tienen mucha curva de aprendizaje para el tiempo que tenemos.
-- **Monitoring and protecting our ecosystem from space:** buena lectura de contexto para la presentación, aunque no la necesitamos para construir nada.
-
-### Otros recursos que también ayudan
-
-- **Earthdata Search** (https://search.earthdata.nasa.gov): el buscador oficial de datos de la NASA. Ahí se encuentra el nombre exacto de cada conjunto de datos.
-- **Worldview** (https://worldview.earthdata.nasa.gov): un visor de la NASA para ver imágenes del planeta. Nos sirve de referencia para saber qué ya existe y cómo diferenciarnos.
-- **Guías de calidad del aire de la OMS:** para explicar en palabras simples cuándo un nivel de contaminación es preocupante.
+- **Juries y evaluadores** del NASA Space Apps, que necesitan ver el valor en pocos minutos.
+- **Docentes y estudiantes** que explican cambios climáticos y quieren una fuente visual y honesta.
+- **Personas con curiosidad por el clima** que quieren explorar datos satelitales reales sin ser expertas en estadística.
+- **Equipos de investigación** que necesitan un punto de partida visual para investigar contrastes regionales.
 
 ---
 
-## 11. Antes del evento y durante el evento
+## Empezar
 
-**Antes (hoy):**
-- Crear la cuenta gratuita de **NASA Earthdata**.
-- Confirmar que todos estamos registrados en el evento y en el mismo equipo.
-- Explorar en Giovanni para decidir la variable y las regiones.
-- Preparar bocetos, textos y el guion de la presentación.
-- Dejar listas las herramientas en la computadora de quien programa.
+```bash
+# Frontend (Svelte + Vite)
+cd frontend
+pnpm install
+pnpm run dev
 
-**Durante el evento:**
-- El código y el análisis se hacen durante el hackathon, ya que las reglas de estos eventos suelen pedir que el trabajo se cree en esos días. Conviene confirmar los términos del evento con la organización.
-- Crear un repositorio público para el código, porque normalmente se pide enlazarlo al enviar el proyecto.
-- Enviar el proyecto en la plataforma oficial antes del cierre.
+# Backend (descarga de datos NASA)
+cd backend
+uv sync
+```
+
+La guía completa está en [`frontend/README.md`](frontend/README.md) y [`backend/README.md`](backend/README.md).
 
 ---
 
-## 12. Una frase para recordar
+## Licencia
 
-> "No queremos decir cuánto cambia un lugar. Queremos mostrar por qué dos lugares cambian de forma distinta, y comprobar que ese cambio es real."
+MIT License
+
+Copyright (c) 2026 JacobEscoto — ver [`LICENSE`](LICENSE).

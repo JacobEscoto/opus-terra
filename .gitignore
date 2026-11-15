@@ -15,6 +15,10 @@ data/cookies.*
 data/*-download.sh
 
 backend/.venv/
+backend/data/
+data/raw/
+data/processed/
+.env
 backend/*/**/.pytest_cache/
 
 # Caché de Python y módulos generados (nunca deben subirse).
@@ -32,3 +36,5 @@ dist/
 build/
 *.so
 *.egg-link
+
+*.env
