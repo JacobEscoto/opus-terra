@@ -19,34 +19,67 @@ El proyecto no sustituye una medición directa. Presenta resultados de análisis
 
 ---
 
-## Funcionalidades actuales
+## Qué hace la app hoy
 
-- **Globo 3D interactivo.** Muestra las zonas con cambios claros sobre la superficie de la Tierra.
-- **Selector de variables.** Permite consultar temperatura, precipitación de MERRA-2, precipitación GPM IMERG y vegetación mediante NDVI.
-- **Marcadores de tendencia.** Diferencia visualmente los cambios al alza y a la baja.
-- **Comparaciones automáticas.** Presenta pares de zonas con tendencias opuestas para facilitar la exploración.
-- **Tarjetas comparativas.** Muestran el nombre de cada zona, su dirección de cambio, el cambio acumulado estimado y sus coordenadas técnicas.
-- **Línea de tiempo.** Permite consultar los años disponibles cuando la variable incluye una serie anual por zona.
-- **Panel de resultados.** Resume el periodo, la fuente, la unidad y la cantidad de zonas analizadas.
-- **Páginas informativas.** Incluye un glosario, fuentes de datos y la información del proyecto y sus participantes.
-- **Diseño adaptable.** La interfaz funciona en pantallas de escritorio y dispositivos móviles.
+- **Globo 3D interactivo.** Muestra sobre la superficie de la Tierra las zonas donde el cambio es claro.
+- **Selector de variables.** Permite elegir entre temperatura del aire, precipitación MERRA-2, precipitación IMERG y vegetación (NDVI).
+- **Capa de marcadores que se puede mostrar u ocultar.** El botón «Ocultar» / «Mostrar» quita y devuelve los puntos del globo sin recargar los datos.
+- **Solo se dibujan las tendencias al alza.** El globo y la lista «Celdas significativas» dejan fuera las zonas que van a la baja, aunque el archivo de datos las contenga (ver [`docs/known-bugs.md`](docs/known-bugs.md)).
+- **Lista de pares cuando existen.** Cuando hay zonas con cambio claro en las dos direcciones, el panel lista pares de zonas con tendencias opuestas y permite abrir cada par. Hoy solo la vegetación forma pares.
+- **Tarjetas de región con marca de significancia.** Cada zona del par muestra su nombre, la marca «Alza» o «Bajada», el cambio acumulado en el periodo y sus coordenadas bajo «Ver detalles técnicos».
+- **Línea de tiempo.** Aparece desactivada con el aviso «Esta variable no incluye una serie anual por zona» en las variables que no traen serie anual por zona. Hoy solo temperatura y vegetación la activan, y entonces cambia el año de la capa.
+- **Panel de resultados.** Reúne la frase resumen, la fuente, la unidad, el periodo y la cantidad de zonas analizadas. En el celular se pliega y se abre con «Abrir panel» / «Cerrar panel».
+- **Páginas informativas.** Incluye un glosario, las fuentes de datos y la información del proyecto y sus integrantes.
+- **Diseño adaptable.** La interfaz funciona en pantallas de escritorio y en dispositivos móviles.
 
 La aplicación no ofrece diagnósticos, alertas ni recomendaciones de salud.
 
 ---
 
+## Cómo leer un resultado
+
+1. **Elige la variable y la región** en el panel. En el celular, abre primero el panel con «Abrir panel». El globo y el panel cambian juntos.
+2. **Empieza por la frase resumen.** Dice cuántas zonas de la región muestran un cambio claro sobre cuántas se analizaron. En las precipitaciones avisa de que el producto es un promedio de área y no hay zonas que dibujar.
+3. **Cada punto del globo es una zona.** El color va de cambio leve a cambio fuerte, como indica la leyenda del globo. Hoy solo se dibujan las zonas que van al alza; las que van a la baja no aparecen.
+4. **«Alza» y «Bajada» indican la dirección del cambio.** La marca que las acompaña señala que el cambio es lo bastante consistente como para que no parezca casualidad; es la marca de significancia.
+5. **La cifra grande de una tarjeta es el cambio acumulado en el periodo**, por ejemplo una cifra como «+0.7 °C en 24 años». No es el valor del último año ni una predicción: resume cuánto cambió la medida a lo largo de los años completos analizados.
+6. **La lista de pares solo aparece cuando hay zonas claras en las dos direcciones.** Cada par enfrenta una zona que sube con otra que baja para compararlas. Si no hay pares, el panel muestra «Sin pares de tendencias opuestas claras». Hoy solo la vegetación forma pares.
+7. **La línea de tiempo solo se activa cuando hay serie anual por zona.** Hoy la activan temperatura y vegetación; con ellas cambia el año de la capa. En las precipitaciones aparece desactivada con el aviso «Esta variable no incluye una serie anual por zona».
+8. **Los detalles técnicos están plegados.** «Ver detalles técnicos» muestra coordenadas y códigos para quien los necesite; no hacen falta para leer el resultado.
+
+---
+
+## Glosario breve
+
+- **Tendencia.** Dirección general en la que cambia una medida a lo largo de varios años.
+- **Cambio claro.** Cambio suficientemente consistente como para que sea poco probable que se deba al azar; la app lo marca con «Alza» o «Bajada».
+- **Alza / Bajada.** La medida sube o baja con el paso de los años. Hoy el globo solo dibuja las que van al alza.
+- **Serie anual.** Un valor por cada año completo, usado para comparar cómo cambia una zona.
+- **Años completos.** Años con los 12 meses dentro de la ventana mensual. La ventana actual, 2000-02 → 2025-09, deja 2001–2024 como años completos.
+- **Ventana mensual.** Periodo de meses que se usa antes de descartar los años incompletos.
+- **Zona o celda.** Una parte del territorio dentro de una cuadrícula; cada una se analiza como unidad.
+- **Promedio de área.** Un solo valor para toda la región en lugar de una cuadrícula; por eso las precipitaciones no tienen puntos ni pares.
+- **NDVI.** Medida de la vegetación a partir de la luz que reflejan las plantas.
+- **MERRA-2, GPM IMERG y MODIS.** Productos de la NASA: un modelo atmosférico, una estimación de lluvia por satélite y un instrumento que observa la superficie.
+
+---
+
 ## Datos utilizados
 
-Los datos públicos de la aplicación corresponden a Honduras y se procesan con una ventana común de análisis cuando la variable lo permite.
+Los datos públicos de la aplicación corresponden a Honduras y a Centroamérica. Los números que muestra la app no se calculan en el navegador: [`backend/scripts/download_data.py`](backend/scripts/download_data.py) descarga los productos de NASA y [`backend/scripts/generate_analysis.py`](backend/scripts/generate_analysis.py) escribe los archivos `frontend/public/data/*.json`. La app solo lee esos archivos.
 
-| Variable | Producto | Versión | Resolución | Cobertura de referencia |
-|----------|----------|---------|------------|-------------------------|
-| Precipitación observada | GPM IMERG | 07 | 0.1° × 0.1° | 1998-01 → 2025-09 |
-| Precipitación modelada | MERRA-2 flux (M2TMNXFLX) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
-| Temperatura del aire a 2 m | MERRA-2 superficie (M2TMNXSLV) | 5.12.4 | 0.625° lon × 0.5° lat | 1996-01 → 2026-09 |
-| Vegetación (NDVI) | MODIS MOD13C2 | 061 | 0.05° × 0.05° | 2000-02 → 2026-10 |
+| Variable | Producto | Versión | Resolución | Ventana mensual usada | Años completos usados |
+|----------|----------|---------|------------|-----------------------|-----------------------|
+| Precipitación observada | GPM IMERG | 07 | 0.1° × 0.1° | 2000-02 → 2025-09 | — (promedio de área) |
+| Precipitación modelada | MERRA-2 flux (M2TMNXFLX) | 5.12.4 | 0.625° lon × 0.5° lat | 2000-02 → 2025-09 | — (promedio de área) |
+| Temperatura del aire a 2 m | MERRA-2 superficie (M2TMNXSLV) | 5.12.4 | 0.625° lon × 0.5° lat | 2000-02 → 2025-09 | 2001–2024 |
+| Vegetación (NDVI) | MODIS MOD13C2 | 061 | 0.05° × 0.05° | 2000-02 → 2025-09 | 2001–2024 |
 
-La ventana común utilizada por los análisis actuales es `2000-02`–`2025-09`. Los archivos de resultados se encuentran en `frontend/public/data/honduras/`.
+La ventana mensual es común a los cuatro productos y va de 2000-02 a 2025-09, según `PERIODO_COMUN` en [`backend/src/opusterra/config.py`](backend/src/opusterra/config.py). Como 2000 y 2025 no llegan a 12 meses, la serie anual efectiva usa 2001–2024. Las dos precipitaciones son promedios de área: no tienen malla de celdas ni serie anual por zona.
+
+La cobertura disponible de cada producto está en [`backend/config/datasets.toml`](backend/config/datasets.toml): GPM IMERG 1998-01-01 → 2025-09-30; MERRA-2 1996-01-01 → 2026-09-30; MODIS MOD13C2 2000-02-01 → 2026-10-31.
+
+Los archivos de resultados se encuentran en [`frontend/public/data/honduras/`](frontend/public/data/honduras/) y [`frontend/public/data/centroamerica/`](frontend/public/data/centroamerica/).
 
 - **Distribución:** NASA GES DISC, Earthdata Search y OPeNDAP.
 - **Procesamiento:** los recortes de MERRA-2 se solicitan para la región de interés, no como archivos globales completos.
@@ -106,3 +139,5 @@ MIT License. Consulta el archivo [`LICENSE`](LICENSE).
 ---
 
 Made with ❤️ by Pegaso-X from 🇭🇳
+
+Nota técnica: el análisis usa la prueba de Mann-Kendall y la pendiente de Theil-Sen por celda, con corrección de Benjamini-Hochberg; el detalle está en [`docs/json-contract.md`](docs/json-contract.md).
