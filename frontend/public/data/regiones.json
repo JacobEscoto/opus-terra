@@ -27,9 +27,7 @@
     ],
     "variables": [
       "merra2_t2m",
-      "merra2_precipitacion",
-      "imerg_precipitacion",
-      "mod13c2_ndvi"
+      "merra2_precipitacion"
     ]
   }
 ]
