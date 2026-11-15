@@ -12,9 +12,16 @@
     pendiente: number | null;
     /** Número de años mostrados. */
     anios: number;
+    onEnfocar?: () => void;
   }
 
-  let { region, unidad, pendiente, anios }: PropiedadesComponente = $props();
+  let {
+    region,
+    unidad,
+    pendiente,
+    anios,
+    onEnfocar,
+  }: PropiedadesComponente = $props();
 
   function cambioFormateado(): string {
     if (pendiente === null) return "Cambio no disponible";
@@ -46,6 +53,11 @@
     <p class="region__explicacion">{EXPLICACIONES.cambioClaro}</p>
   {:else}
     <p class="region__explicacion">Cambio poco claro.</p>
+  {/if}
+  {#if onEnfocar}
+    <button type="button" class="region__focus" onclick={onEnfocar}>
+      Enfocar esta zona <span aria-hidden="true">↗</span>
+    </button>
   {/if}
 </article>
 
@@ -100,5 +112,20 @@
     font-size: 13px;
     line-height: 1.65;
     color: var(--muted);
+  }
+
+  .region__focus {
+    justify-self: start;
+    padding: 6px 0 4px;
+    border-bottom: 1px solid var(--hairline);
+    background: transparent;
+    font: 10px var(--mono);
+    color: var(--amber);
+  }
+
+  .region__focus:hover,
+  .region__focus:focus-visible {
+    border-color: var(--amber);
+    color: var(--ink);
   }
 </style>

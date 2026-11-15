@@ -51,6 +51,18 @@
   let status = $state<"loading" | "ready" | "error">("loading");
   let sceneRef: EarthScene | null = null;
 
+  function acercar() {
+    sceneRef?.zoomIn();
+  }
+
+  function alejar() {
+    sceneRef?.zoomOut();
+  }
+
+  function restablecerVista() {
+    sceneRef?.resetView();
+  }
+
   function actualizarCapa() {
     const scene = sceneRef;
     if (!scene || !capaVisible) {
@@ -132,6 +144,20 @@
       </p>
     </div>
   {/if}
+
+  <div class="globe-tools" aria-label="Controles del globo">
+    <button type="button" onclick={acercar} aria-label="Acercar el globo">+</button>
+    <button type="button" onclick={alejar} aria-label="Alejar el globo">−</button>
+    <button
+      type="button"
+      class="globe-tools__reset"
+      onclick={restablecerVista}
+      aria-label="Restablecer vista del globo"
+    >
+      <span aria-hidden="true">⌂</span>
+      <span>Vista inicial</span>
+    </button>
+  </div>
 </div>
 
 <style>
@@ -151,6 +177,42 @@
 
   canvas:active {
     cursor: grabbing;
+  }
+
+  .globe-tools {
+    position: absolute;
+    right: 42px;
+    bottom: 34px;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 38px 38px;
+    gap: 1px;
+    pointer-events: auto;
+  }
+
+  .globe-tools button {
+    min-height: 38px;
+    border: 1px solid rgba(237, 243, 250, 0.2);
+    background: rgba(11, 18, 32, 0.76);
+    color: var(--ink);
+    font: 20px/1 var(--sans);
+    backdrop-filter: blur(8px);
+  }
+
+  .globe-tools button:hover,
+  .globe-tools button:focus-visible {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .globe-tools__reset {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font: 9px var(--mono) !important;
+    letter-spacing: 0.03em;
   }
 
   .boot {
@@ -193,6 +255,13 @@
     }
     100% {
       transform: translateX(250%);
+    }
+  }
+
+  @media (max-width: 650px) {
+    .globe-tools {
+      right: 17px;
+      bottom: 20px;
     }
   }
 </style>

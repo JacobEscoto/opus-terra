@@ -122,7 +122,7 @@ export class EarthScene {
   constructor(options: EarthSceneOptions) {
     this.options = options;
     this.canvas = options.canvas;
-    this.spinSpeed = options.spinSpeed ?? 0.045;
+    this.spinSpeed = options.spinSpeed ?? 0;
 
     // OrbitControls releases the pointer unconditionally on pointerup. A
     // cancelled gesture (or a hot reload) may already have lost the capture.
@@ -183,7 +183,7 @@ export class EarthScene {
     this.controls.zoomSpeed = 0.85;
     this.controls.minDistance = 1.25;
     this.controls.maxDistance = 14;
-    this.controls.autoRotate = options.autoRotate ?? !this.reduceMotion;
+    this.controls.autoRotate = options.autoRotate ?? false;
     this.controls.autoRotateSpeed = 0.35;
 
     this.earthMaterial = new THREE.MeshStandardMaterial({
@@ -543,8 +543,27 @@ export class EarthScene {
     animation.resolve();
   }
 
-  setAutoRotate(enabled: boolean) {
-    this.controls.autoRotate = enabled && !this.reduceMotion;
+  setAutoRotate(_enabled: boolean) {
+    this.controls.autoRotate = false;
+  }
+
+  zoomIn() {
+    this.userZoomed = true;
+    this.controls.dollyIn(1.25);
+    this.controls.update();
+  }
+
+  zoomOut() {
+    this.userZoomed = true;
+    this.controls.dollyOut(1.25);
+    this.controls.update();
+  }
+
+  resetView() {
+    this.userZoomed = false;
+    const direction = this.camera.position.clone().normalize();
+    this.camera.position.copy(direction.multiplyScalar(this.idealDistance));
+    this.controls.update();
   }
 
   /** Downloads the NASA imagery and applies it to the materials. */
@@ -701,11 +720,9 @@ export class EarthScene {
         this.controls.autoRotate = focus.restoreAutoRotate;
         focus.resolve();
       }
-    } else {
+    } else if (this.controls.autoRotate && this.spinSpeed !== 0) {
       this.spinGroup.rotation.y += this.spinSpeed * delta;
     }
-    // clouds drift a little faster than the solid surface
-    this.cloudGroup.rotation.y += this.spinSpeed * 0.06 * delta;
 
     this.controls.update();
 

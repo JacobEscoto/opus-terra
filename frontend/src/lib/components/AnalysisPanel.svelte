@@ -28,6 +28,7 @@
     onCambiarVariable: (id: string) => void;
     recorridoActivo: boolean;
     onRecorrido: () => void;
+    onEnfocarRegion: (lat: number, lon: number) => void;
   }
 
   let {
@@ -46,6 +47,7 @@
     onCambiarVariable,
     recorridoActivo,
     onRecorrido,
+    onEnfocarRegion,
   }: PropiedadesComponente = $props();
 
   let panelExpandido = $state(false);
@@ -132,12 +134,22 @@
             unidad={datos.unidad}
             pendiente={pendienteDe(parSeleccionado.region_a)}
             anios={aniosCompletos}
+            onEnfocar={() =>
+              onEnfocarRegion(
+                parSeleccionado.region_a.lat,
+                parSeleccionado.region_a.lon,
+              )}
           />
           <RegionCard
             region={parSeleccionado.region_b}
             unidad={datos.unidad}
             pendiente={pendienteDe(parSeleccionado.region_b)}
             anios={aniosCompletos}
+            onEnfocar={() =>
+              onEnfocarRegion(
+                parSeleccionado.region_b.lat,
+                parSeleccionado.region_b.lon,
+              )}
           />
         </div>
       </div>

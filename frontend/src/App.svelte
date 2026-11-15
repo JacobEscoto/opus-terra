@@ -60,7 +60,6 @@
   let fijarRotacionAutomatica = $state<FijarRotacionAutomatica | null>(null);
   let timerRecorrido: ReturnType<typeof setTimeout> | null = null;
   let recorridoToken = 0;
-  let enfoqueInicialHecho = false;
   type Pagina = "glosario" | "acerca";
   let pagina = $state<Pagina | null>(null);
   let enlaceQueAbrioPagina = $state<HTMLElement | null>(null);
@@ -103,22 +102,6 @@
   $effect(() => {
     registrarEtiquetas(etiquetasGlobo);
   });
-
-  function centroDe(id: string): { lat: number; lon: number } {
-    const region = regiones.find((item) => item.id == id);
-    if (!region) {
-      return {
-        lat: 14.75,
-        lon: -86.25,
-      };
-    }
-
-    const [lonMin, latMin, lonMax, latMax] = region.bbox;
-    return {
-      lat: (latMin + latMax) / 2,
-      lon: (lonMin + lonMax) / 2,
-    };
-  }
 
   function paginaDesdeHash() {
     const hash = window.location.hash.slice(1);
@@ -206,12 +189,9 @@
     fijarRotacionAutomatica = siguienteRotacion;
   }
 
-  $effect(() => {
-    if (carga.estado !== "listo" || !enfocar || enfoqueInicialHecho) return;
-    enfoqueInicialHecho = true;
-    const centro = centroDe(regionActiva);
-    void enfocar(centro.lat, centro.lon, 2000);
-  });
+  function enfocarRegion(lat: number, lon: number) {
+    void enfocar?.(lat, lon, 900);
+  }
 
   /** Lee el JSON seleccionado y reemplaza la capa sin crear otra escena. */
   async function cambiarVariable(id: string) {
@@ -244,7 +224,6 @@
     detenerRecorrido();
     regionActiva = id;
     idSeleccionado = null;
-    enfoqueInicialHecho = false;
     variablesCargadas = [];
     const numeroRegion = ++solicitud;
     const paisesCargados = await cargarPaises(id);
@@ -421,6 +400,7 @@
         onCambiarVariable={(id) => void cambiarVariable(id)}
         {recorridoActivo}
         onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
+        onEnfocarRegion={enfocarRegion}
       />
     </div>
   </aside>
