@@ -77,7 +77,10 @@ def test_precipitacion_mm_mes_usa_febrero_de_29_dias() -> None:
             "lon": LONGITUDES,
         },
     )
-    ds["PRECTOTCORR"].attrs = {"units": "kg m-2 s-1", "long_name": "total_precipitation"}
+    ds["PRECTOTCORR"].attrs = {
+        "units": "kg m-2 s-1",
+        "long_name": "total_precipitation",
+    }
 
     resultado = precipitacion_mm_mes(ds)
 
@@ -121,7 +124,9 @@ def test_precipitacion_mm_mes_usa_febrero_de_28_dias() -> None:
 
     resultado = precipitacion_mm_mes(ds)
 
-    assert float(resultado["PRECTOTCORR"].values[0, 0, 0]) == pytest.approx(1e-5 * 28 * 86400)
+    assert float(resultado["PRECTOTCORR"].values[0, 0, 0]) == pytest.approx(
+        1e-5 * 28 * 86400
+    )
 
 
 def test_precipitacion_mm_mes_convierte_cada_mes_con_su_duracion() -> None:
@@ -131,14 +136,20 @@ def test_precipitacion_mm_mes_convierte_cada_mes_con_su_duracion() -> None:
     valores = np.full((3, len(LATITUDES), len(LONGITUDES)), 1e-5)
     ds = xr.Dataset(
         {"PRECTOTCORR": (("time", "lat", "lon"), valores)},
-        coords={"time": np.array(fechas.values, dtype="datetime64[ns]"), "lat": LATITUDES, "lon": LONGITUDES},
+        coords={
+            "time": np.array(fechas.values, dtype="datetime64[ns]"),
+            "lat": LATITUDES,
+            "lon": LONGITUDES,
+        },
     )
 
     resultado = precipitacion_mm_mes(ds)
 
     for indice, dias in enumerate((31, 29, 30)):
         esperado = 1e-5 * dias * 86400
-        assert float(resultado["PRECTOTCORR"].values[indice, 0, 0]) == pytest.approx(esperado)
+        assert float(resultado["PRECTOTCORR"].values[indice, 0, 0]) == pytest.approx(
+            esperado
+        )
 
 
 def test_t2m_celsius_convierte_kelvin() -> None:
@@ -254,8 +265,12 @@ def test_cargar_merra2_ignora_merra2_legacy(tmp_path: Path) -> None:
     """La carpeta `merra2_legacy` no se lee."""
 
     _escribir_mes(tmp_path / "merra2_flx", "flx_202001.nc", "2020-01-01", _mesh(1.0))
-    _escribir_mes(tmp_path / "merra2_slv", "slv_202001.nc", "2020-01-01", _mesh(280.0), "T2M", "K")
-    _escribir_mes(tmp_path / "merra2_legacy" / "flx", "flx_202002.nc", "2020-02-01", _mesh(9.0))
+    _escribir_mes(
+        tmp_path / "merra2_slv", "slv_202001.nc", "2020-01-01", _mesh(280.0), "T2M", "K"
+    )
+    _escribir_mes(
+        tmp_path / "merra2_legacy" / "flx", "flx_202002.nc", "2020-02-01", _mesh(9.0)
+    )
 
     ds = cargar_merra2(tmp_path, ["PRECTOTCORR", "T2M"])
 
@@ -267,7 +282,9 @@ def test_cargar_merra2_ignora_merra2_legacy(tmp_path: Path) -> None:
 def test_cargar_merra2_rechaza_merra2_legacy(tmp_path: Path) -> None:
     """Pedir explícitamente la carpeta legacy es un error."""
 
-    _escribir_mes(tmp_path / "merra2_legacy" / "flx", "flx_202001.nc", "2020-01-01", _mesh(1.0))
+    _escribir_mes(
+        tmp_path / "merra2_legacy" / "flx", "flx_202001.nc", "2020-01-01", _mesh(1.0)
+    )
 
     with pytest.raises(ValueError, match="merra2_legacy"):
         cargar_merra2(tmp_path / "merra2_legacy", ["PRECTOTCORR"])

@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import argparse
+import json
 import re
-from collections import defaultdict
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-import tomllib
 
 import numpy as np
 import pandas as pd
@@ -17,9 +16,9 @@ import xarray as xr
 from opusterra import mod13c2
 from opusterra.config import PERIODO_COMUN
 from opusterra.enso import cargar_oni, remover_enso
+from opusterra.geocodificacion import etiqueta, ubicacion
 from opusterra.lugares import cargar_lugares, nombrar_punto
 from opusterra.tendencia import fdr_benjamini_hochberg, mann_kendall, pendiente_sen
-
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "frontend" / "public" / "data"
@@ -43,7 +42,9 @@ def _cargar_region(region_id: str) -> Region:
     datos = regiones.get(region_id)
     if not isinstance(datos, dict):
         disponibles = ", ".join(sorted(regiones)) or "ninguna"
-        raise ValueError(f'La región "{region_id}" no existe. Disponibles: {disponibles}.')
+        raise ValueError(
+            f'La región "{region_id}" no existe. Disponibles: {disponibles}.'
+        )
     bbox = datos.get("bbox")
     nombre = datos.get("nombre")
     if (
@@ -54,7 +55,11 @@ def _cargar_region(region_id: str) -> Region:
         or not all(isinstance(valor, (int, float)) for valor in bbox)
     ):
         raise ValueError(f'La región "{region_id}" no tiene nombre o bbox válidos.')
-    return Region(region_id, nombre, tuple(float(valor) for valor in bbox))
+    return Region(
+        region_id,
+        nombre,
+        (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+    )
 
 
 def _periodos_completos(index: pd.DatetimeIndex) -> list[int]:
@@ -81,11 +86,16 @@ def _base(
         "nombre_variable": nombre,
         "unidad": unidad,
         "periodo": {"inicio": periodo[0], "fin": periodo[1]},
-        "contexto_oms": contexto or "Análisis ambiental; no constituye un diagnóstico de salud.",
+        "contexto_oms": contexto
+        or "Análisis ambiental; no constituye un diagnóstico de salud.",
         "pares": [],
         "pixeles_probados": 0,
         "pixeles_significativos_fdr": 0,
-        "fdr": {"metodo": "Benjamini-Hochberg", "alfa": ALFA, "universo": f"píxeles de {region.nombre}"},
+        "fdr": {
+            "metodo": "Benjamini-Hochberg",
+            "alfa": ALFA,
+            "universo": f"píxeles de {region.nombre}",
+        },
         "resultados_pixeles": [],
         "metodologia": {
             "anomalia": "anomalía mensual respecto a la climatología del periodo efectivo",
@@ -99,29 +109,49 @@ def _base(
     return resultado
 
 
-def _crear_pares(registros: list[dict], lugares: list[dict] | None = None) -> list[dict]:
-    if lugares is None:
-        lugares = cargar_lugares(LUGARES, bbox=(-89.4, 12.9, -83.1, 16.6))
-    crecientes = [r for r in registros if r["significativa_fdr"] and r["direccion"] == "creciente"]
-    decrecientes = [r for r in registros if r["significativa_fdr"] and r["direccion"] == "decreciente"]
+def _crear_pares(
+    registros: list[dict], lugares: list[dict] | None = None
+) -> list[dict]:
+    crecientes = [
+        r for r in registros if r["significativa_fdr"] and r["direccion"] == "creciente"
+    ]
+    decrecientes = [
+        r
+        for r in registros
+        if r["significativa_fdr"] and r["direccion"] == "decreciente"
+    ]
     pares = []
-    for indice, (creciente, decreciente) in enumerate(zip(crecientes, decrecientes, strict=False), 1):
+    for indice, (creciente, decreciente) in enumerate(
+        zip(crecientes, decrecientes, strict=False), 1
+    ):
+
         def region(registro: dict, tendencia: str) -> dict:
+            if lugares is None:
+                lugar = ubicacion(registro["lat"], registro["lon"])
+                nombre = etiqueta(lugar)
+                extra = {"pais": lugar["pais"], "ciudad": lugar["ciudad"]}
+            else:
+                # Camino anterior, por si una prueba pasa un catálogo propio.
+                nombre = nombrar_punto(registro["lat"], registro["lon"], lugares)
+                extra = {}
             return {
-                "nombre": nombrar_punto(registro["lat"], registro["lon"], lugares),
+                "nombre": nombre,
                 "lat": registro["lat"],
                 "lon": registro["lon"],
                 "tendencia": tendencia,
                 "cambio_porcentual": registro["cambio_porcentual"],
                 "significativa": True,
                 "explicacion": "La tendencia anual supera el umbral FDR de Benjamini-Hochberg.",
+                **extra,
             }
 
-        pares.append({
-            "id": f"pixel-{indice}",
-            "region_a": region(creciente, "alza"),
-            "region_b": region(decreciente, "bajada"),
-        })
+        pares.append(
+            {
+                "id": f"pixel-{indice}",
+                "region_a": region(creciente, "alza"),
+                "region_b": region(decreciente, "bajada"),
+            }
+        )
     return pares
 
 
@@ -152,12 +182,17 @@ def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
         mes = pd.Period(coincidencia.group(1), freq="M")
         if INICIO <= mes <= FIN:
             anterior = por_mes.get(mes)
-            if anterior is None or ruta.name.split(".")[0] > anterior.name.split(".")[0]:
+            if (
+                anterior is None
+                or ruta.name.split(".")[0] > anterior.name.split(".")[0]
+            ):
                 por_mes[mes] = ruta
     esperados = pd.period_range(INICIO, FIN, freq="M")
     faltantes = [str(mes) for mes in esperados if mes not in por_mes]
     if faltantes:
-        raise RuntimeError(f"Faltan meses MERRA-2 T2M en la ventana efectiva: {', '.join(faltantes)}")
+        raise RuntimeError(
+            f"Faltan meses MERRA-2 T2M en la ventana efectiva: {', '.join(faltantes)}"
+        )
     partes = []
     for mes in esperados:
         with xr.open_dataset(por_mes[mes]) as dataset:
@@ -175,12 +210,17 @@ def _cargar_malla_aer(raw: Path) -> xr.DataArray:
         mes = pd.Period(coincidencia.group(1), freq="M")
         if INICIO <= mes <= FIN:
             anterior = por_mes.get(mes)
-            if anterior is None or ruta.name.split(".")[0] > anterior.name.split(".")[0]:
+            if (
+                anterior is None
+                or ruta.name.split(".")[0] > anterior.name.split(".")[0]
+            ):
                 por_mes[mes] = ruta
     esperados = pd.period_range(INICIO, FIN, freq="M")
     faltantes = [str(mes) for mes in esperados if mes not in por_mes]
     if faltantes:
-        raise RuntimeError(f"Faltan meses MERRA-2 DUSMASS25 en la ventana efectiva: {', '.join(faltantes)}")
+        raise RuntimeError(
+            f"Faltan meses MERRA-2 DUSMASS25 en la ventana efectiva: {', '.join(faltantes)}"
+        )
     partes = []
     for mes in esperados:
         with xr.open_dataset(por_mes[mes]) as dataset:
@@ -221,7 +261,9 @@ def _analizar_malla(
     celdas_descartadas = int((~completas).sum())
     if celdas_descartadas:
         ancha = ancha.loc[:, completas]
-    oni = cargar_oni(ROOT / "data" / "external" / "nino-3.4" / "iersst_nino3.4a_1996_2026.nc")
+    oni = cargar_oni(
+        ROOT / "data" / "external" / "nino-3.4" / "iersst_nino3.4a_1996_2026.nc"
+    )
     residuos, coeficientes, r2 = remover_enso(ancha, oni)
     anios = _periodos_completos(pd.DatetimeIndex(residuos.index))
     completos = residuos[residuos.index.year.isin(anios)]
@@ -231,41 +273,49 @@ def _analizar_malla(
     pvalores: list[float] = []
     claves: list[tuple[float, float]] = []
     for lat, lon in anual.columns:
-            serie = anual[(lat, lon)].to_numpy(dtype=float)
-            if not np.isfinite(serie).all() or len(serie) < 3:
-                continue
-            z, p, direccion = mann_kendall(serie)
-            sen, intercepto = pendiente_sen(serie)
-            registro = {
-                "lat": float(lat),
-                "lon": float(lon),
-                "mann_kendall_z": z,
-                "p_valor": p,
-                "direccion": direccion,
-                "sen_unidad_por_anio": sen,
-                "intercepto_sen": intercepto,
-                "coeficiente_enso": float(coeficientes[(lat, lon)]),
-                "r2_enso": float(r2[(lat, lon)]),
-                "n_anios": int(len(serie)),
-                "valores_anuales": [round(float(valor), 4) for valor in serie],
-                "valor_anual_inicial": float(serie[0]),
-                "valor_anual_final": float(serie[-1]),
-                "cambio_porcentual": float(
-                    (serie[-1] - serie[0]) / abs(serie[0]) * 100 if serie[0] else 0.0
-                ),
-                "significativa_fdr": False,
-            }
-            registros.append(registro)
-            pvalores.append(p)
-            claves.append((float(lat), float(lon)))
+        serie = anual[(lat, lon)].to_numpy(dtype=float)
+        if not np.isfinite(serie).all() or len(serie) < 3:
+            continue
+        z, p, direccion = mann_kendall(serie)
+        sen, intercepto = pendiente_sen(serie)
+        registro = {
+            "lat": float(lat),
+            "lon": float(lon),
+            "mann_kendall_z": z,
+            "p_valor": p,
+            "direccion": direccion,
+            "sen_unidad_por_anio": sen,
+            "intercepto_sen": intercepto,
+            "coeficiente_enso": float(coeficientes[(lat, lon)]),
+            "r2_enso": float(r2[(lat, lon)]),
+            "n_anios": int(len(serie)),
+            "valores_anuales": [round(float(valor), 4) for valor in serie],
+            "valor_anual_inicial": float(serie[0]),
+            "valor_anual_final": float(serie[-1]),
+            "cambio_porcentual": float(
+                (serie[-1] - serie[0]) / abs(serie[0]) * 100 if serie[0] else 0.0
+            ),
+            "significativa_fdr": False,
+        }
+        registros.append(registro)
+        pvalores.append(p)
+        claves.append((float(lat), float(lon)))
 
     mascara = fdr_benjamini_hochberg(np.asarray(pvalores), alfa=ALFA)
     for registro, significativa in zip(registros, mascara, strict=True):
         registro["significativa_fdr"] = bool(significativa)
-    significativos = [registro for registro in registros if registro["significativa_fdr"]]
+    significativos = [
+        registro for registro in registros if registro["significativa_fdr"]
+    ]
     resultado = _base(
-        fuente, nombre[0], nombre[1], unidad, (anios[0], anios[-1]), region,
-        limitacion=limitacion, contexto=contexto,
+        fuente,
+        nombre[0],
+        nombre[1],
+        unidad,
+        (anios[0], anios[-1]),
+        region,
+        limitacion=limitacion,
+        contexto=contexto,
     )
     resultado["pixeles_probados"] = len(registros)
     resultado["pixeles_significativos_fdr"] = len(significativos)
@@ -376,7 +426,9 @@ def _buscar_precipitacion(
 
     meses = set()
     for ruta in rutas:
-        coincidencias = re.findall(r"(?<!\d)(20\d{2})(\d{2})(?:\d{2})?(?!\d)", ruta.name)
+        coincidencias = re.findall(
+            r"(?<!\d)(20\d{2})(\d{2})(?:\d{2})?(?!\d)", ruta.name
+        )
         for anio, mes in coincidencias:
             periodo = pd.Period(f"{anio}-{mes}", freq="M")
             if INICIO <= periodo <= FIN:
@@ -405,7 +457,9 @@ def _actualizar_regiones(region: Region, variables: list[str]) -> None:
     if ruta.exists():
         contenido = json.loads(ruta.read_text(encoding="utf-8"))
         if not isinstance(contenido, list):
-            raise ValueError("frontend/public/data/regiones.json debe contener una lista.")
+            raise ValueError(
+                "frontend/public/data/regiones.json debe contener una lista."
+            )
     else:
         contenido = []
     entrada = {
@@ -424,12 +478,18 @@ def _actualizar_regiones(region: Region, variables: list[str]) -> None:
             actualizado.append(item)
     if not reemplazado:
         actualizado.append(entrada)
-    ruta.write_text(json.dumps(actualizado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    ruta.write_text(
+        json.dumps(actualizado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--region", default="honduras", help="Identificador de la región en datasets.toml")
+    parser.add_argument(
+        "--region",
+        default="honduras",
+        help="Identificador de la región en datasets.toml",
+    )
     args = parser.parse_args()
     region = _cargar_region(args.region)
     raw = ROOT / "data" / "raw" / region.id
@@ -471,13 +531,16 @@ def main() -> None:
         region=region,
         contexto="Partículas en suspensión estimadas por el modelo MERRA-2; no es una medición de salud",
     )
-    _actualizar_regiones(region, [
-        "merra2_t2m",
-        "merra2_precipitacion",
-        "imerg_precipitacion",
-        "mod13c2_ndvi",
-        "merra2_aer",
-    ])
+    _actualizar_regiones(
+        region,
+        [
+            "merra2_t2m",
+            "merra2_precipitacion",
+            "imerg_precipitacion",
+            "mod13c2_ndvi",
+            "merra2_aer",
+        ],
+    )
     for nombre, contenido in (
         ("merra2_t2m.json", t2m),
         ("merra2_precipitacion.json", precipitacion_merra),
@@ -508,7 +571,9 @@ def main() -> None:
             f"{tamano_nuevo / 1_000_000:.2f} MB"
             + (" (solo celdas significativas)" if limitado_a_significativos else "")
         )
-        print(f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR")
+        print(
+            f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR"
+        )
 
 
 if __name__ == "__main__":

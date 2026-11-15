@@ -7,8 +7,12 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from opusterra.enso import RUTA_ONI_POR_DEFECTO, alinear_mensual, cargar_oni, remover_enso
-
+from opusterra.enso import (
+    RUTA_ONI_POR_DEFECTO,
+    alinear_mensual,
+    cargar_oni,
+    remover_enso,
+)
 
 RAIZ_REPOSITORIO = Path(__file__).resolve().parents[2]
 RUTA_ONI_REAL = RAIZ_REPOSITORIO / RUTA_ONI_POR_DEFECTO
@@ -43,13 +47,17 @@ def test_alinear_mensual_usa_año_mes_y_descarta_oni_excedente() -> None:
     """La alineación no depende del día exacto de cada timestamp."""
 
     fechas_serie = pd.to_datetime(["2001-01-15", "2001-02-20", "2001-03-10"])
-    fechas_oni = pd.to_datetime(["2000-12-01", "2001-01-01", "2001-02-01", "2001-03-01"])
+    fechas_oni = pd.to_datetime(
+        ["2000-12-01", "2001-01-01", "2001-02-01", "2001-03-01"]
+    )
     serie = pd.Series([10.0, 20.0, 30.0], index=fechas_serie)
     oni = pd.Series([99.0, 1.0, 2.0, 3.0], index=fechas_oni)
 
     serie_alineada, oni_alineado = alinear_mensual(serie, oni)
 
-    pd.testing.assert_index_equal(serie_alineada.index, pd.date_range("2001-01-01", periods=3, freq="MS"))
+    pd.testing.assert_index_equal(
+        serie_alineada.index, pd.date_range("2001-01-01", periods=3, freq="MS")
+    )
     np.testing.assert_allclose(oni_alineado, [1.0, 2.0, 3.0])
 
 

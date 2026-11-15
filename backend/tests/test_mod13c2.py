@@ -24,7 +24,10 @@ def _cubo(ndvi, fiabilidad, calidad) -> xr.Dataset:
     forma = (len(ndvi), 1, 1)
     return xr.Dataset(
         {
-            "ndvi": (("time", "lat", "lon"), np.asarray(ndvi, dtype=float).reshape(forma)),
+            "ndvi": (
+                ("time", "lat", "lon"),
+                np.asarray(ndvi, dtype=float).reshape(forma),
+            ),
             "ndvi_reliability": (
                 ("time", "lat", "lon"),
                 np.asarray(fiabilidad, dtype=float).reshape(forma),
@@ -45,8 +48,12 @@ def _cubo(ndvi, fiabilidad, calidad) -> xr.Dataset:
 def test_mes_de_archivo_usa_el_dia_del_ano() -> None:
     """El nombre del archivo MOD13C2 determina su mes calendario."""
 
-    assert mes_de_archivo("MOD13C2.A2000032.061.2020042083108.nc") == pd.Period("2000-02", freq="M")
-    assert mes_de_archivo("MOD13C2.A2025273.061.2026301132433.nc") == pd.Period("2025-09", freq="M")
+    assert mes_de_archivo("MOD13C2.A2000032.061.2020042083108.nc") == pd.Period(
+        "2000-02", freq="M"
+    )
+    assert mes_de_archivo("MOD13C2.A2025273.061.2026301132433.nc") == pd.Period(
+        "2025-09", freq="M"
+    )
     with pytest.raises(ValueError, match="MOD13C2"):
         mes_de_archivo("no-es-un-archivo.nc")
 
@@ -57,20 +64,29 @@ def test_mascara_acepta_solo_calidad_confiable() -> None:
     ndvi = [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, np.nan]
     fiabilidad = [0, 1, 2, 3, 4, 0, 0, 0]
     calidad = [
-        _calidad(0, 0, 1),   # buena
-        _calidad(1, 9, 1),   # marginal, revisable
-        _calidad(0, 0, 1),   # fiabilidad 2: nieve/hielo
-        _calidad(0, 0, 1),   # fiabilidad 3: nuboso
-        _calidad(0, 0, 1),   # fiabilidad 4: estimado del histórico
-        _calidad(2, 0, 1),   # MODLAND_QA 10: probablemente nuboso
+        _calidad(0, 0, 1),  # buena
+        _calidad(1, 9, 1),  # marginal, revisable
+        _calidad(0, 0, 1),  # fiabilidad 2: nieve/hielo
+        _calidad(0, 0, 1),  # fiabilidad 3: nuboso
+        _calidad(0, 0, 1),  # fiabilidad 4: estimado del histórico
+        _calidad(2, 0, 1),  # MODLAND_QA 10: probablemente nuboso
         _calidad(0, 12, 1),  # utilidad 1100: interpolado, no real
-        _calidad(0, 0, 1),   # NDVI no producido
+        _calidad(0, 0, 1),  # NDVI no producido
     ]
     cubo = _cubo(ndvi, fiabilidad, calidad)
 
     mascara, conteos = mascara_confiable(cubo)
 
-    assert mascara[:, 0, 0].tolist() == [True, True, False, False, False, False, False, False]
+    assert mascara[:, 0, 0].tolist() == [
+        True,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    ]
     assert conteos["celda_meses_validos"] == 2
     assert conteos["celda_meses_excluidos"] == 6
 

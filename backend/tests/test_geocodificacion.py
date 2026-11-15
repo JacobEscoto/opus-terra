@@ -1,0 +1,36 @@
+import pytest
+
+from opusterra.geocodificacion import etiqueta
+
+
+def test_etiqueta_completa():
+    datos = {"ciudad": "Danlí", "departamento": "El Paraíso", "pais": "Honduras"}
+    assert etiqueta(datos) == "Cerca de Danlí, El Paraíso, Honduras"
+
+
+def test_etiqueta_sin_ciudad_usa_pais():
+    datos = {"ciudad": None, "departamento": None, "pais": "Nicaragua"}
+    assert etiqueta(datos) == "Nicaragua"
+
+
+def test_etiqueta_sin_datos():
+    datos = {"ciudad": None, "departamento": None, "pais": None}
+    assert etiqueta(datos) == "Zona sin nombre de lugar"
+
+
+def test_ubicacion_tegucigalpa():
+    pytest.importorskip("reverse_geocoder")
+    from opusterra.geocodificacion import ubicacion
+
+    resultado = ubicacion(14.0818, -87.2068)
+    assert resultado["ciudad"] == "Tegucigalpa"
+    assert resultado["pais"] == "Honduras"
+
+
+def test_ubicacion_lejos_de_todo_no_inventa_ciudad():
+    pytest.importorskip("reverse_geocoder")
+    from opusterra.geocodificacion import ubicacion
+
+    # Atlántico central: ninguna ciudad dentro de 25 km.
+    resultado = ubicacion(30.0, -40.0)
+    assert resultado["ciudad"] is None
