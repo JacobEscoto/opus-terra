@@ -19,7 +19,17 @@
   {
     "id": "centroamerica",
     "nombre": "Centroamérica",
-    "bbox": [ -92.0, 7.0, -77.0, 18.0 ],
-    "variables": ["merra2_t2m", "merra2_precipitacion", "imerg_precipitacion", "mod13c2_ndvi"]
+    "bbox": [
+      -92.0,
+      7.0,
+      -77.0,
+      18.0
+    ],
+    "variables": [
+      "merra2_t2m",
+      "merra2_precipitacion",
+      "imerg_precipitacion",
+      "mod13c2_ndvi"
+    ]
   }
 ]

@@ -10,6 +10,7 @@
     "fin": 2025,
     "mes_inicio": "2000-02",
     "mes_fin": "2025-09",
+    "meses": 308,
     "anios_completos": []
   },
   "contexto_oms": "Análisis ambiental; no constituye un diagnóstico de salud.",
@@ -32,6 +33,6 @@
   "limitacion": "El insumo disponible es una serie area-promedio sin dimensiones lat/lon; no se fabricaron píxeles ni pruebas de significancia.",
   "fuente_periodo_disponible": {
     "inicio": 1998,
-    "fin": 2025
+    "fin": 1998
   }
 }
