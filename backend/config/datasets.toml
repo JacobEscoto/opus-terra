@@ -1,0 +1,79 @@
+# Catálogo verificado en CMR y con una granula real.
+# Los tamaños son promedios publicados por CMR; los archivos son globales.
+
+[defaults]
+start = "1996-01-01"
+end = "2026-11-01"
+
+[products.gpm_imerg]
+short_name = "GPM_3IMERGM"
+version = "07"
+main_variable = "precipitation"
+auxiliary_variables = ["randomError", "gaugeRelativeWeighting", "precipitationQualityIndex"]
+resolution = "0.1 x 0.1 grados"
+frequency = "monthly"
+coverage_start = "1998-01-01"
+coverage_end = "2025-09-30"
+native_format = "HDF5"
+output_folder = "gpm_imerg"
+estimated_file_size_mb = 30.0
+crop_margin_degrees = 0.5
+plausible_range = [0.0, 1000.0]
+
+[products.merra2_flx]
+short_name = "M2TMNXFLX"
+version = "5.12.4"
+main_variable = "PRECTOTCORR"
+auxiliary_variables = ["PRECTOT"]
+resolution = "0.625 grados lon x 0.5 grados lat"
+frequency = "monthly"
+coverage_start = "1996-01-01"
+coverage_end = "2026-09-30"
+native_format = "NetCDF4"
+output_folder = "merra2_flx"
+estimated_file_size_mb = 380.0
+opendap_collection_id = "C1276812868-GES_DISC"
+opendap_margin_degrees = 0.5
+estimated_opendap_kb_per_file = 2.0
+plausible_range = [0.0, 1.0]
+
+[products.merra2_slv]
+short_name = "M2TMNXSLV"
+version = "5.12.4"
+main_variable = "T2M"
+auxiliary_variables = []
+resolution = "0.625 grados lon x 0.5 grados lat"
+frequency = "monthly"
+coverage_start = "1996-01-01"
+coverage_end = "2026-09-30"
+native_format = "NetCDF4"
+output_folder = "merra2_slv"
+estimated_file_size_mb = 400.0
+opendap_collection_id = "C1276812859-GES_DISC"
+opendap_margin_degrees = 0.5
+estimated_opendap_kb_per_file = 1.5
+plausible_range = [150.0, 350.0]
+
+[products.mod13c2]
+short_name = "MOD13C2"
+version = "061"
+main_variable = "ndvi"
+auxiliary_variables = ["ndvi_quality", "ndvi_reliability"]
+resolution = "0.05 x 0.05 grados"
+frequency = "monthly"
+coverage_start = "2000-02-01"
+coverage_end = "2026-10-31"
+native_format = "HDF-EOS2"
+output_folder = "mod13c2"
+estimated_file_size_mb = 98.1
+plausible_range = [-0.2, 1.0]
+
+[regions.honduras]
+# Orden: lon_min, lat_min, lon_max, lat_max.
+bbox = [-89.4, 12.9, -83.1, 16.6]
+
+# Preparadas para una futura ampliación, sin implementarlas todavía:
+# [regions.centroamerica]
+# bbox = [-92.0, 7.0, -77.0, 18.0]
+# [regions.global]
+# bbox = [-180.0, -90.0, 180.0, 90.0]
