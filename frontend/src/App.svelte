@@ -586,7 +586,7 @@
   }
   .site-menu {
     position: absolute;
-    top: 64px;
+    top: 84px;
     right: 42px;
     z-index: 4;
     width: min(300px, calc(100vw - 48px));
@@ -596,6 +596,7 @@
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
     pointer-events: auto;
   }
+
   .site-menu nav {
     display: grid;
     gap: 15px;
@@ -666,7 +667,7 @@
   }
 
   .hud--variables {
-    top: 64px;
+    top: 84px;
     left: 42px;
     width: min(320px, calc(100vw - 84px));
   }
@@ -788,13 +789,13 @@
 
   @media (max-width: 650px) {
     .site-menu {
-      top: 64px;
+      top: 84px;
       right: 17px;
       width: min(300px, calc(100vw - 34px));
     }
 
     .hud--variables {
-      top: 64px;
+      top: 84px;
       right: 17px;
       left: 17px;
       width: auto;

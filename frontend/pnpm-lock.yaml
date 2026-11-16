@@ -20,9 +20,6 @@ importers:
       '@fortawesome/free-solid-svg-icons':
         specifier: ^7.3.1
         version: 7.3.1
-      '@thesvg/svelte':
-        specifier: ^4.0.9
-        version: 4.0.9(svelte@5.57.3)
       svelte-fa:
         specifier: ^4.0.4
         version: 4.0.4(svelte@5.57.3)
@@ -232,12 +229,6 @@ packages:
     peerDependencies:
       svelte: ^5.46.4
       vite: ^8.0.0-beta.7 || ^8.0.0
-
-  '@thesvg/svelte@4.0.9':
-    resolution: {integrity: sha512-URROWdFvfYmzVV9f6oar/MLtkG3EIYQj5FbuCzHWsC1YvGxbamNGJwMgbvVr49GE9mhRHmvLkyOssl5PlDP0+g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      svelte: '>=4'
 
   '@tsconfig/svelte@5.0.9':
     resolution: {integrity: sha512-gbtbqsEFq9gFzGmgJMIB3+leXVmkUttoFjzeHsbqN6qFKst40fvxnN9+3Ajdl8VlIGwPevs9LNJ8YUhQgchqaw==}
@@ -672,10 +663,6 @@ snapshots:
       svelte: 5.57.3
       vite: 8.3.8(@types/node@24.19.2)
       vitefu: 1.1.3(vite@8.3.8(@types/node@24.19.2))
-
-  '@thesvg/svelte@4.0.9(svelte@5.57.3)':
-    dependencies:
-      svelte: 5.57.3
 
   '@tsconfig/svelte@5.0.9': {}
 
