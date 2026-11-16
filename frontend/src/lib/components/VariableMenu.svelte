@@ -129,6 +129,11 @@
           {/each}
         </select>
       </label>
+
+      <p class="vm__pista">
+        Consejo: pulsa el territorio de un país en el globo para ver si tiene
+        datos y cambiar de región.
+      </p>
     </div>
   {/if}
 </div>
@@ -269,5 +274,11 @@
   .vm__region select:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 3px;
+  }
+
+  .vm__pista {
+    margin: 10px 11px 4px;
+    font: 9px/1.55 var(--mono);
+    color: var(--faint);
   }
 </style>

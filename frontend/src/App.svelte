@@ -144,7 +144,7 @@
       paisSeleccionado = null;
       return;
     }
-    const region = regionDePais(pais, regiones);
+    const region = regionDePais(pais, regiones, { lat, lon });
     paisSeleccionado = { pais, region };
     if (region && region.id !== regionActiva) {
       await cambiarRegion(region.id, true);
@@ -409,14 +409,6 @@
     >
       <nav aria-label="Secciones del sitio">
         <a
-          href="#metodologia"
-          onclick={(evento) => abrirPagina("metodologia", evento)}
-          >{NAVEGACION.metodologia}</a
-        >
-        <a href="#fuentes" onclick={(evento) => abrirPagina("fuentes", evento)}
-          >{NAVEGACION.fuentes}</a
-        >
-        <a
           href="#glosario"
           onclick={(evento) => abrirPagina("glosario", evento)}
           >{NAVEGACION.glosario}</a
@@ -476,14 +468,6 @@
   <!-- Vista inicial: solo globo + leyenda y línea de tiempo abajo a la izquierda. -->
   <div class="stage">
     <div class="dock">
-      <button
-        type="button"
-        class="dock__toggle"
-        aria-expanded={controlesAbiertos}
-        onclick={() => (controlesAbiertos = !controlesAbiertos)}
-      >
-        {controlesAbiertos ? APP.cerrarControles : APP.abrirControles}
-      </button>
       {#if controlesAbiertos}
         <div class="legend-slot">
           <GlobeLegend />
@@ -500,11 +484,22 @@
           </div>
         {/if}
       {/if}
-      {#if !panelAbierto}
-        <button type="button" class="open-panel" onclick={abrirPanel}
-          >Ver análisis</button
+      <div class="dock__actions">
+        <button
+          type="button"
+          class="dock__toggle"
+          aria-expanded={controlesAbiertos}
+          onclick={() => (controlesAbiertos = !controlesAbiertos)}
         >
-      {/if}
+          {controlesAbiertos ? APP.cerrarControles : APP.abrirControles}
+        </button>
+
+        {#if !panelAbierto}
+          <button type="button" class="open-panel" onclick={abrirPanel}
+            >Ver análisis</button
+          >
+        {/if}
+      </div>
     </div>
   </div>
 
@@ -591,7 +586,7 @@
   }
   .site-menu {
     position: absolute;
-    top: 76px;
+    top: 64px;
     right: 42px;
     z-index: 4;
     width: min(300px, calc(100vw - 48px));
@@ -656,6 +651,12 @@
     width: 100%;
   }
 
+  .dock__actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
   /* Controles flotantes: no interceptan el puntero salvo en sus propios
      controles, para dejar libres la órbita y la pulsación del globo. */
   .hud {
@@ -665,7 +666,7 @@
   }
 
   .hud--variables {
-    top: 74px;
+    top: 64px;
     left: 42px;
     width: min(320px, calc(100vw - 84px));
   }

@@ -84,18 +84,31 @@ a:focus-visible {
   background: rgba(120, 185, 255, 0.3);
 }
 
+/* Texto auxiliar para lectores de pantalla, fuera de la composición visual. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .interface {
   position: relative;
   z-index: 1;
   min-height: 100svh;
-  padding: 28px 42px 25px;
+  padding: 22px 42px 22px;
   pointer-events: none;
 }
 .masthead {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  padding-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--hairline);
 }
 .masthead span {

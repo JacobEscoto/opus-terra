@@ -8,7 +8,7 @@
     type CeldaTendencia,
   } from "../three/tendenciaLayer";
   import { quitarEtiquetas } from "../three/etiquetasLayer";
-  import { pintarMapa } from "../three/mapaLayer";
+  import { limpiarMapa, pintarMapa } from "../three/mapaLayer";
   import type { PaisGeo } from "../geo/paises";
 
   type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
@@ -61,6 +61,8 @@
   let canvas: HTMLCanvasElement;
   let status = $state<"loading" | "ready" | "error">("loading");
   let sceneRef: EarthScene | null = null;
+  /** Avisa a los efectos de que ya existe una escena a la que enganchar capas. */
+  let escenaPreparada = $state(false);
 
   function acercar() {
     sceneRef?.zoomBy(0.8);
@@ -102,6 +104,7 @@
       dataMode,
     });
     sceneRef = scene;
+    escenaPreparada = true;
     actualizarCapa();
 
     scene
@@ -121,7 +124,9 @@
 
     return () => {
       sceneRef = null;
+      escenaPreparada = false;
       quitarCapa();
+      limpiarMapa();
       quitarEtiquetas();
       scene.dispose();
     };
@@ -144,6 +149,7 @@
   // Fronteras y país seleccionado: se repintan al llegar el GeoJSON o al
   // cambiar la selección, sin tocar la capa de tendencias.
   $effect(() => {
+    if (!escenaPreparada) return;
     const scene = sceneRef;
     if (!scene) return;
     pintarMapa(scene.getOverlayRoot(), geo, seleccion);
@@ -151,8 +157,15 @@
 </script>
 
 <div class="globe">
-  <canvas bind:this={canvas} aria-label="Globo terráqueo 3D del planeta Tierra"
+  <canvas
+    bind:this={canvas}
+    aria-label="Globo terráqueo 3D del planeta Tierra"
+    aria-describedby="globo-descripcion"
   ></canvas>
+  <span id="globo-descripcion" class="sr-only">
+    Pulsa el territorio de un país para ver su nombre y si tiene datos
+    ambientales disponibles.
+  </span>
 
   {#if status !== "ready"}
     <div class="boot" role="status" aria-live="polite">

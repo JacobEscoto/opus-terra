@@ -116,7 +116,8 @@ function puntoRepresentativo(
   return { lat, lon };
 }
 
-function convertirFeature(feature: FeatureGeo): PaisGeo {
+/** Convierte una feature del GeoJSON al formato interno. */
+export function convertirFeature(feature: FeatureGeo): PaisGeo {
   const poligonos = poligonosDe(feature.geometry);
   const propiedades = feature.properties;
   const nombre =
@@ -224,12 +225,14 @@ export interface RegionDisponibleLocal {
 
 /**
  * Decide qué región de datos cubre un país, sin mezclarlo con la selección
- * geográfica. Si el país coincide con la región por nombre, se prefiere esa;
- * si no, se usa la región más pequeña cuyo recuadro lo contiene.
+ * geográfica. Si el país coincide con la región por nombre, se prefiere esa.
+ * Si no, se usa el punto pulsado (o el representativo del país) y la región
+ * más pequeña cuyo recuadro lo contiene.
  */
 export function regionDePais(
   pais: PaisGeo,
   regiones: RegionDisponibleLocal[],
+  punto?: { lat: number; lon: number },
 ): RegionDisponibleLocal | null {
   const nombrePais = normalizar(pais.nombre);
   const porNombre = regiones.find(
@@ -237,9 +240,9 @@ export function regionDePais(
   );
   if (porNombre) return porNombre;
 
-  const candidatas = regiones.filter((region) =>
-    enBbox(pais.punto.lon, pais.punto.lat, region.bbox),
-  );
+  const lat = punto?.lat ?? pais.punto.lat;
+  const lon = punto?.lon ?? pais.punto.lon;
+  const candidatas = regiones.filter((region) => enBbox(lon, lat, region.bbox));
   if (candidatas.length === 0) return null;
 
   const area = (region: RegionDisponibleLocal) => {

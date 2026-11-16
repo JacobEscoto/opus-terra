@@ -92,6 +92,11 @@ function destruir() {
   textura = null;
 }
 
+/** Retira la capa de territorios y libera su geometría, material y textura. */
+export function limpiarMapa() {
+  destruir();
+}
+
 /** Repinta fronteras y selección; se llama al cargar el GeoJSON y al elegir. */
 export function pintarMapa(
   raiz: THREE.Object3D,
