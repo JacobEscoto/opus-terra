@@ -809,6 +809,23 @@
       gap: 8px;
     }
 
+    .dock__actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: stretch;
+      width: 100%;
+      max-width: 220px;
+    }
+
+    .dock__actions button {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      white-space: nowrap;
+      font-size: 9px;
+    }
+
     :global(.dock .timeline) {
       width: 100%;
       min-width: 0;
