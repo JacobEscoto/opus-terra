@@ -87,6 +87,7 @@ plausible_range = [-0.2, 1.0]
 # Orden: lon_min, lat_min, lon_max, lat_max.
 bbox = [-89.4, 12.9, -83.1, 16.6]
 nombre = "Honduras"
+pais = "Honduras"
 
 # Región disponible para análisis cuando sus datos hayan sido descargados:
 [regions.centroamerica]

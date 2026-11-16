@@ -14,6 +14,15 @@ importers:
       '@fontsource-variable/sora':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fortawesome/free-brands-svg-icons':
+        specifier: ^7.3.1
+        version: 7.3.1
+      '@thesvg/svelte':
+        specifier: ^4.0.9
+        version: 4.0.9(svelte@5.57.3)
+      svelte-fa:
+        specifier: ^4.0.4
+        version: 4.0.4(svelte@5.57.3)
       three:
         specifier: ^0.187.0
         version: 0.187.0
@@ -62,6 +71,14 @@ packages:
 
   '@fontsource-variable/sora@5.3.0':
     resolution: {integrity: sha512-h8kHta4Z8SkfUGeI82TUy1n3rbrKpBRGwuk4t4qCwto5oEHxlbOFD2yGP+Df5fbmTXwKGn+o667vYp0E4K8Whw==}
+
+  '@fortawesome/fontawesome-common-types@7.3.1':
+    resolution: {integrity: sha512-k0C0sdHmZtAo6dRDtd1Z/qcpyHbL0CKsjV8seMY/21xGhY5Wsv0XRmiI/xEEH4y2c9b1+jvgNs/3EqhV27yUEA==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-brands-svg-icons@7.3.1':
+    resolution: {integrity: sha512-8eiNzycuFhy3mZsi5EVO8JpO3H8l7/kSCl4Gk4iUew9hJuzYFqAAD6kqgeEup3+YZ9hL+5cjjorGzrRLkYuURg==}
+    engines: {node: '>=6'}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -208,6 +225,12 @@ packages:
     peerDependencies:
       svelte: ^5.46.4
       vite: ^8.0.0-beta.7 || ^8.0.0
+
+  '@thesvg/svelte@4.0.9':
+    resolution: {integrity: sha512-URROWdFvfYmzVV9f6oar/MLtkG3EIYQj5FbuCzHWsC1YvGxbamNGJwMgbvVr49GE9mhRHmvLkyOssl5PlDP0+g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      svelte: '>=4'
 
   '@tsconfig/svelte@5.0.9':
     resolution: {integrity: sha512-gbtbqsEFq9gFzGmgJMIB3+leXVmkUttoFjzeHsbqN6qFKst40fvxnN9+3Ajdl8VlIGwPevs9LNJ8YUhQgchqaw==}
@@ -431,6 +454,11 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: ^5.0.0 || ^6.0.0
 
+  svelte-fa@4.0.4:
+    resolution: {integrity: sha512-85BomCGkTrH8kPDGvb8JrVwq9CqR9foprbKjxemP4Dtg3zPR7OXj5hD0xVYK0C+UCzFI1zooLoK/ndIX6aYXAw==}
+    peerDependencies:
+      svelte: ^4.0.0 || ^5.0.0
+
   svelte@5.57.3:
     resolution: {integrity: sha512-5mAftM3SoDV9X0zdF386F9p2pv8iKOwi/KfBS1XnBAkVCKFzVOLHUoa8iGWAt4buoicLmyWVRpuuD5wplXOQsg==}
     engines: {node: '>=18'}
@@ -531,6 +559,12 @@ snapshots:
 
   '@fontsource-variable/sora@5.3.0': {}
 
+  '@fortawesome/fontawesome-common-types@7.3.1': {}
+
+  '@fortawesome/free-brands-svg-icons@7.3.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.3.1
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
@@ -627,6 +661,10 @@ snapshots:
       svelte: 5.57.3
       vite: 8.3.8(@types/node@24.19.2)
       vitefu: 1.1.3(vite@8.3.8(@types/node@24.19.2))
+
+  '@thesvg/svelte@4.0.9(svelte@5.57.3)':
+    dependencies:
+      svelte: 5.57.3
 
   '@tsconfig/svelte@5.0.9': {}
 
@@ -812,6 +850,10 @@ snapshots:
       typescript: 6.0.3
     transitivePeerDependencies:
       - picomatch
+
+  svelte-fa@4.0.4(svelte@5.57.3):
+    dependencies:
+      svelte: 5.57.3
 
   svelte@5.57.3:
     dependencies:

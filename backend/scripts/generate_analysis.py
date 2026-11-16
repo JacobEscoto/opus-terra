@@ -13,16 +13,20 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+import opusterra.merra2
 from opusterra import mod13c2
 from opusterra.config import PERIODO_COMUN, gpm_mm_h_a_mm_mes
 from opusterra.enso import cargar_oni, remover_enso
+from opusterra.fronteras import cargar_frontera, filtrar_columnas_en_pais
 from opusterra.geocodificacion import etiqueta, ubicacion
-import opusterra.merra2
 from opusterra.tendencia import fdr_benjamini_hochberg, mann_kendall, pendiente_sen
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "frontend" / "public" / "data"
 DATASETS = ROOT / "backend" / "config" / "datasets.toml"
+FRONTERAS = (
+    ROOT / "data" / "external" / "natural-earth" / "ne_50m_admin_0_countries.geojson"
+)
 INICIO = pd.Period(PERIODO_COMUN[0], freq="M")
 FIN = pd.Period(PERIODO_COMUN[1], freq="M")
 ALFA = 0.05
@@ -33,6 +37,7 @@ class Region:
     id: str
     nombre: str
     bbox: tuple[float, float, float, float]
+    pais: str | None = None
 
 
 def _cargar_region(region_id: str) -> Region:
@@ -41,11 +46,12 @@ def _cargar_region(region_id: str) -> Region:
     datos = regiones.get(region_id)
     if not isinstance(datos, dict):
         disponibles = ", ".join(sorted(regiones)) or "ninguna"
-        raise ValueError(
-            f'La región "{region_id}" no existe. Disponibles: {disponibles}.'
+        raise TypeError(
+            f"La región '{region_id}' no existe. Disponibles: {disponibles}."
         )
     bbox = datos.get("bbox")
     nombre = datos.get("nombre")
+    pais = datos.get("pais")
     if (
         not isinstance(nombre, str)
         or not nombre
@@ -58,6 +64,7 @@ def _cargar_region(region_id: str) -> Region:
         region_id,
         nombre,
         (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+        pais if isinstance(pais, str) and pais else None,
     )
 
 
@@ -167,7 +174,9 @@ def _serializar_resultado(contenido: dict) -> str:
 def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
     directorio = raw / "merra2_slv"
     if not directorio.is_dir():
-        raise FileNotFoundError(f"No existe el directorio de MERRA-2 T2M en {directorio}")
+        raise FileNotFoundError(
+            f"No existe el directorio de MERRA-2 T2M en {directorio}"
+        )
     rutas = sorted(directorio.glob("*.nc"))
     if not rutas:
         raise FileNotFoundError(f"No se encontraron archivos .nc en {directorio}")
@@ -200,7 +209,9 @@ def _cargar_malla_t2m(raw: Path) -> xr.DataArray:
 def _cargar_malla_aer(raw: Path) -> xr.DataArray:
     directorio = raw / "merra2_aer"
     if not directorio.is_dir():
-        raise FileNotFoundError(f"No existe el directorio de MERRA-2 AER en {directorio}")
+        raise FileNotFoundError(
+            f"No existe el directorio de MERRA-2 AER en {directorio}"
+        )
     rutas = sorted(directorio.glob("*.nc"))
     if not rutas:
         raise FileNotFoundError(f"No se encontraron archivos .nc en {directorio}")
@@ -257,6 +268,17 @@ def _analizar_malla(
     anomalia = da.groupby("time.month") - climatologia
     fechas = pd.DatetimeIndex(anomalia.time.values)
     ancha = anomalia.to_series().unstack(["lat", "lon"])
+
+    # Si la región es un país, solo se comparan celdas dentro de su frontera.
+    # Va antes de descartar celdas por calidad y antes de FDR: así el universo
+    # de pruebas es realmente el país y los conteos de calidad no se mezclan
+    # con las celdas de países vecinos o del mar.
+    alcance = None
+    if region.pais:
+        ancha, alcance = filtrar_columnas_en_pais(
+            ancha, cargar_frontera(region.pais, FRONTERAS), region.pais
+        )
+
     # Una celda con algún mes no confiable no puede sostener la serie anual
     # completa que exige el resto del pipeline, así que se descarta entera.
     completas = ancha.notna().all(axis=0)
@@ -319,6 +341,7 @@ def _analizar_malla(
         limitacion=limitacion,
         contexto=contexto,
     )
+
     resultado["pixeles_probados"] = len(registros)
     resultado["pixeles_significativos_fdr"] = len(significativos)
     resultado["resultados_pixeles"] = registros
@@ -336,6 +359,9 @@ def _analizar_malla(
         calidad = {**calidad, "celdas_descartadas_por_calidad": celdas_descartadas}
         resultado["calidad"] = calidad
         resultado["metodologia"]["mascara_calidad"] = mod13c2.DESCRIPCION_CRITERIO
+
+    if alcance is not None:
+        resultado["alcance"] = alcance
     return resultado
 
 
@@ -350,13 +376,20 @@ def _analizar_malla_mod13c2(raw: Path, region: Region) -> dict:
         raise FileNotFoundError(f"No existe el directorio de MOD13C2 en {directorio}")
     rutas = sorted(directorio.glob("*.nc"))
     if not rutas:
-        raise FileNotFoundError(f"No se encontraron archivos de MOD13C2 en {directorio}")
+        raise FileNotFoundError(
+            f"No se encontraron archivos de MOD13C2 en {directorio}"
+        )
 
     cubo = mod13c2.cargar_cubo(directorio, INICIO, FIN)
     mascara, conteos = mod13c2.mascara_confiable(cubo)
     ndvi = mod13c2.ndvi_mascarado(cubo, mascara)
     resumen = mod13c2.resumen_calidad(
         mascara, conteos, pd.DatetimeIndex(cubo.time.values)
+    )
+    alcance_texto = (
+        f"Solo se analizan celdas cuyo centro está dentro de {region.pais}."
+        if region.pais
+        else f"El recorte MOD13C2 corresponde al bbox de {region.nombre} con margen e incluye celdas de países vecinos y del mar."
     )
     return _analizar_malla(
         ndvi,
@@ -368,8 +401,7 @@ def _analizar_malla_mod13c2(raw: Path, region: Region) -> dict:
         limitacion=(
             "La serie analizada es el residuo mensual sin estacionalidad ni ENSO, por lo que "
             "cambio_porcentual se calcula sobre valores residuales cercanos a cero y no debe "
-            "leerse como cambio de cobertura vegetal. El recorte MOD13C2 corresponde al bbox de "
-            f"{region.nombre} con margen e incluye celdas de países vecinos y del mar."
+            "leerse como cambio de cobertura vegetal. " + alcance_texto
         ),
     )
 
@@ -377,10 +409,14 @@ def _analizar_malla_mod13c2(raw: Path, region: Region) -> dict:
 def _cargar_malla_merra2_precipitacion(raw: Path) -> xr.DataArray:
     directorio = raw / "merra2_flx"
     if not directorio.is_dir():
-        raise FileNotFoundError(f"No existe el directorio de MERRA-2 FLX en {directorio}")
+        raise FileNotFoundError(
+            f"No existe el directorio de MERRA-2 FLX en {directorio}"
+        )
     rutas = sorted(directorio.glob("*.nc"))
     if not rutas:
-        raise FileNotFoundError(f"No se encontraron archivos de MERRA-2 FLX en {directorio}")
+        raise FileNotFoundError(
+            f"No se encontraron archivos de MERRA-2 FLX en {directorio}"
+        )
     por_mes: dict[pd.Period, Path] = {}
     for ruta in rutas:
         coincidencia = re.search(r"\.(\d{6})(?:_[^.]+)?\.nc$", ruta.name)
@@ -416,10 +452,14 @@ def _cargar_malla_imerg_precipitacion(raw: Path, region: Region) -> xr.DataArray
         if region.id == "honduras" and (ROOT / "data" / "raw" / "gpm_imerg").is_dir():
             directorio = ROOT / "data" / "raw" / "gpm_imerg"
         else:
-            raise FileNotFoundError(f"No existe el directorio de GPM IMERG en {directorio}")
+            raise FileNotFoundError(
+                f"No existe el directorio de GPM IMERG en {directorio}"
+            )
     rutas = sorted(directorio.glob("3B-MO*.nc"))
     if not rutas:
-        raise FileNotFoundError(f"No se encontraron archivos de GPM IMERG en {directorio}")
+        raise FileNotFoundError(
+            f"No se encontraron archivos de GPM IMERG en {directorio}"
+        )
     por_mes: dict[pd.Period, Path] = {}
     for ruta in rutas:
         coincidencia = re.search(r"\.(\d{4})(\d{2})\d{2}-", ruta.name)
@@ -449,7 +489,9 @@ def _cargar_malla_imerg_precipitacion(raw: Path, region: Region) -> xr.DataArray
             p_mes = p.copy(data=conv)
             p_mes.attrs["units"] = "mm/mes"
             p_mes.attrs["units_original"] = unidad
-            p_mes.attrs["conversion"] = "opusterra.config.gpm_mm_h_a_mm_mes: mm/hr -> mm/mes"
+            p_mes.attrs["conversion"] = (
+                "opusterra.config.gpm_mm_h_a_mm_mes: mm/hr -> mm/mes"
+            )
             partes.append(p_mes)
     return (
         xr.concat(partes, dim="time")
@@ -473,6 +515,9 @@ def _actualizar_regiones(region: Region, variables: list[str]) -> None:
         "nombre": region.nombre,
         "bbox": list(region.bbox),
         "variables": variables,
+        # El frontend usa `pais` para validar que los JSON se generaron con el
+        # filtro por frontera; las regiones multinacionales no lo llevan.
+        **({"pais": region.pais} if region.pais else {}),
     }
     reemplazado = False
     actualizado = []
@@ -610,6 +655,12 @@ def main() -> None:
         print(
             f"{nombre}: {contenido['pixeles_probados']} píxeles probados, {contenido['pixeles_significativos_fdr']} significativos FDR"
         )
+        alcance = contenido.get("alcance")
+        if alcance:
+            print(
+                f"{nombre}: {alcance['celdas_dentro']} de {alcance['celdas_malla']} "
+                f"celdas dentro de {alcance['pais']}"
+            )
 
     if region.id == "honduras":
         faltantes = [v for v in cuatro_variables if v not in variables_generadas]
