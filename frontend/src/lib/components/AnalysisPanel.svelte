@@ -1,10 +1,5 @@
 <script lang="ts">
-  import type {
-    EstadoCarga,
-    RegionDisponible,
-    VariableCatalogo,
-  } from "../data/loadAnalysis";
-  import VariableSelector from "./VariableSelector.svelte";
+  import type { EstadoCarga } from "../data/loadAnalysis";
   import {
     aniosDelPeriodo,
     fraseResumen,
@@ -22,14 +17,7 @@
     onSeleccionar: (id: string) => void;
     onVolver: () => void;
     onReintentar: () => void;
-    regiones: RegionDisponible[];
-    regionActiva: string;
-    onCambiarRegion: (id: string) => void;
-    variables: VariableCatalogo[];
-    variableActiva: string;
-    variablesCargadas: string[];
     preparacion: PreparacionCapa | null;
-    onCambiarVariable: (id: string) => void;
     recorridoActivo: boolean;
     onRecorrido: () => void;
     onEnfocarRegion: (lat: number, lon: number) => void;
@@ -41,14 +29,7 @@
     onSeleccionar,
     onVolver,
     onReintentar,
-    regiones,
-    regionActiva,
-    onCambiarRegion,
-    variables,
-    variableActiva,
-    variablesCargadas,
     preparacion,
-    onCambiarVariable,
     recorridoActivo,
     onRecorrido,
     onEnfocarRegion,
@@ -158,23 +139,6 @@
       </div>
     {:else if datos}
       <div class="panel__cuerpo">
-        <label class="region-select">
-          <span class="region-select__etiqueta">Región</span>
-          <select
-            value={regionActiva}
-            onchange={(evento) => onCambiarRegion(evento.currentTarget.value)}
-          >
-            {#each regiones as region (region.id)}
-              <option value={region.id}>{region.nombre}</option>
-            {/each}
-          </select>
-        </label>
-        <VariableSelector
-          {variables}
-          activa={variableActiva}
-          cargadas={variablesCargadas}
-          onCambiar={onCambiarVariable}
-        />
         <div class="capa-control">
           <div>
             <strong class="capa-control__titulo"
@@ -375,30 +339,6 @@
     gap: 16px;
     padding-top: 15px;
   }
-  .region-select {
-    display: grid;
-    gap: 6px;
-  }
-
-  .region-select__etiqueta {
-    font: 10px var(--mono);
-    letter-spacing: 0.08em;
-    color: var(--faint);
-  }
-
-  .region-select select {
-    padding: 7px 10px;
-    border: 1px solid var(--muted);
-    background: var(--bg);
-    font: 11px var(--mono);
-    color: var(--ink);
-  }
-
-  .region-select select:focus-visible {
-    outline: 2px solid var(--amber);
-    outline-offset: 3px;
-  }
-
   .conjunto {
     display: grid;
     gap: 10px;

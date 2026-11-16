@@ -1,5 +1,7 @@
 export const NAVEGACION = {
   glosario: "Glosario",
+  fuentes: "Fuentes de datos",
+  metodologia: "Metodología",
   acerca: "Acerca de",
   volver: "Volver al mapa",
   comoLeer: "¿Cómo leer este mapa?",
@@ -15,6 +17,49 @@ export const APP = {
   ayudaTexto:
     "OpusTerra reúne observaciones satelitales y modelos climáticos para ayudarte a explorar dónde cambian la temperatura, la lluvia y la vegetación.",
   avisoSinSerie: "Esta variable no incluye una serie anual por zona.",
+  controlesTitulo: "Leyenda y línea de tiempo",
+  abrirControles: "Mostrar leyenda y línea de tiempo",
+  cerrarControles: "Ocultar controles",
+  selectorVariable: "Variable",
+  selectorRegion: "Región de datos",
+} as const;
+
+export const METODOLOGIA = {
+  titulo: NAVEGACION.metodologia,
+  introduccion:
+    "Así se pasa de los productos de la NASA a los cambios que se ven en el globo. Cada paso se declaró en los archivos de resultados.",
+  secciones: [
+    [
+      "Anomalía mensual",
+      "A cada mes se le resta el promedio de ese mismo mes en el periodo, para quitar el ciclo anual y quedarse con la diferencia respecto a lo habitual.",
+    ],
+    [
+      "Ajuste por ENSO",
+      "De esa anomalía se descuenta la parte que explica el índice ONI, es decir, El Niño y La Niña. Lo que queda es el residuo que se analiza.",
+    ],
+    [
+      "Serie anual",
+      "El valor de cada año es el promedio de sus residuos mensuales. Solo entran años con los 12 meses completos; en la ventana actual eso deja 2001–2024.",
+    ],
+    [
+      "Tendencia por celda",
+      "Cada celda se prueba con Mann-Kendall para saber si hay cambio y con la pendiente de Theil-Sen para medir cuánto cambia por año.",
+    ],
+    [
+      "Cambio claro",
+      "Como se prueban miles de celdas a la vez, se aplica la corrección Benjamini-Hochberg (FDR 0.05). Una celda solo se marca como cambio claro si supera esa corrección.",
+    ],
+    [
+      "Resolución y cobertura",
+      "MERRA-2 usa 0.625° × 0.5° (unos 55 × 70 km), MODIS MOD13C2 0.05° (unos 5 × 5 km) e IMERG 0.1° (unos 11 × 11 km). Los análisis cubren Honduras y Centroamérica con un recorte rectangular.",
+    ],
+  ],
+  limitacionesTitulo: "Limitaciones",
+  limitaciones: [
+    "Las precipitaciones disponibles son promedios de área, sin malla por celdas: no dicen dónde llueve más ni dónde cambia más.",
+    "El NDVI se analiza como residuo mensual sin estacionalidad ni ENSO; el cambio porcentual no mide cobertura vegetal.",
+    "El recorte rectangular incluye celdas de países vecinos y del mar, aunque el resultado se presente como una región.",
+  ],
 } as const;
 
 export const EXPLICACIONES = {

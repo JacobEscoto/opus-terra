@@ -12,6 +12,13 @@
     type RegionDisponible,
   } from "./lib/data/loadAnalysis";
   import {
+    cargarPaisesGeo,
+    paisEnPunto,
+    regionDePais,
+    type PaisGeo,
+    type RegionDisponibleLocal,
+  } from "./lib/geo/paises";
+  import {
     prepararCapa,
     tieneValoresAnuales,
     nombreCorto,
@@ -20,6 +27,10 @@
   import type { EtiquetaGlobo } from "./lib/three/etiquetasLayer";
   import { registrarEtiquetas } from "./lib/three/etiquetasLayer";
   import GlobeLegend from "./lib/components/GlobeLegend.svelte";
+  import VariableMenu from "./lib/components/VariableMenu.svelte";
+  import PaisChip from "./lib/components/PaisChip.svelte";
+  import Metodologia from "./lib/components/paginas/Metodologia.svelte";
+  import Fuentes from "./lib/components/paginas/Fuentes.svelte";
   import Glosario from "./lib/components/paginas/Glosario.svelte";
   import AcercaDe from "./lib/components/paginas/AcercaDe.svelte";
   import { APP, AYUDA_MAPA, NAVEGACION } from "./lib/data/textos";
@@ -33,6 +44,16 @@
   let regiones = $state<RegionDisponible[]>([]);
   let regionActiva = $state("honduras");
   let paises = $state<EtiquetaGlobo[]>([]);
+
+  /** Territorios del GeoJSON, para dibujar fronteras y detectar pulsaciones. */
+  let geo = $state<PaisGeo[]>([]);
+  /** Selección geográfica, separada de la región que provee los datos. */
+  let paisSeleccionado = $state<{
+    pais: PaisGeo;
+    region: RegionDisponibleLocal | null;
+  } | null>(null);
+  /** Los controles de leyenda y línea de tiempo pueden plegarse. */
+  let controlesAbiertos = $state(true);
 
   const regionActual = $derived(
     regiones.find((region) => region.id == regionActiva) ?? null,
@@ -60,7 +81,8 @@
   let fijarRotacionAutomatica = $state<FijarRotacionAutomatica | null>(null);
   let timerRecorrido: ReturnType<typeof setTimeout> | null = null;
   let recorridoToken = 0;
-  type Pagina = "glosario" | "acerca";
+  type Pagina = "metodologia" | "fuentes" | "glosario" | "acerca";
+  const PAGINAS: Pagina[] = ["metodologia", "fuentes", "glosario", "acerca"];
   let pagina = $state<Pagina | null>(null);
   let enlaceQueAbrioPagina = $state<HTMLElement | null>(null);
   let menuAbierto = $state(false);
@@ -106,8 +128,27 @@
   });
 
   function paginaDesdeHash() {
-    const hash = window.location.hash.slice(1);
-    pagina = hash === "glosario" || hash === "acerca" ? hash : null;
+    const hash = window.location.hash.slice(1) as Pagina;
+    pagina = PAGINAS.includes(hash) ? hash : null;
+  }
+
+  /**
+   * Pulsación sobre el globo: resuelve el territorio por sus geometrías y,
+   * solo si la región de datos es distinta, cambia la región activa. La
+   * selección geográfica y la disponibilidad de datos van por separado.
+   */
+  async function manejarSeleccionGlobo(lat: number, lon: number) {
+    if (geo.length === 0) return;
+    const pais = paisEnPunto(geo, lat, lon);
+    if (!pais) {
+      paisSeleccionado = null;
+      return;
+    }
+    const region = regionDePais(pais, regiones);
+    paisSeleccionado = { pais, region };
+    if (region && region.id !== regionActiva) {
+      await cambiarRegion(region.id, true);
+    }
   }
 
   function abrirPagina(nombre: Pagina, evento?: MouseEvent) {
@@ -236,11 +277,12 @@
     }
   }
 
-  async function cambiarRegion(id: string) {
+  async function cambiarRegion(id: string, conservarSeleccion = false) {
     if (id === regionActiva) return;
     detenerRecorrido();
     regionActiva = id;
     idSeleccionado = null;
+    if (!conservarSeleccion) paisSeleccionado = null;
     variablesCargadas = [];
     const numeroRegion = ++solicitud;
     const paisesCargados = await cargarPaises(id);
@@ -264,11 +306,18 @@
   }
 
   onMount(() => {
+    controlesAbiertos =
+      typeof window !== "undefined"
+        ? window.matchMedia("(min-width: 651px)").matches
+        : true;
     void cargarRegiones()
       .then((list) => (regiones = list))
       .catch(console.error);
     void cargarPaises(regionActiva)
       .then((cargados) => (paises = cargados))
+      .catch(console.error);
+    void cargarPaisesGeo()
+      .then((cargados) => (geo = cargados))
       .catch(console.error);
     void cambiarVariable(variableActiva);
     paginaDesdeHash();
@@ -296,11 +345,15 @@
 
 <svelte:head>
   <title>
-    {pagina === "glosario"
-      ? "Glosario — OpusTerra"
-      : pagina === "acerca"
-        ? "Acerca de — OpusTerra"
-        : "OpusTerra — Cambios ambientales en el planeta"}
+    {pagina === "metodologia"
+      ? "Metodología — OpusTerra"
+      : pagina === "fuentes"
+        ? "Fuentes de datos — OpusTerra"
+        : pagina === "glosario"
+          ? "Glosario — OpusTerra"
+          : pagina === "acerca"
+            ? "Acerca de — OpusTerra"
+            : "OpusTerra — Cambios ambientales en el planeta"}
   </title>
   <meta
     name="description"
@@ -327,6 +380,9 @@
   escalaMaxima={preparacion?.escalaMaxima}
   onReady={alPrepararGlobo}
   onInteraction={detenerRecorrido}
+  onSelect={manejarSeleccionGlobo}
+  {geo}
+  seleccion={paisSeleccionado?.pais ?? null}
 />
 
 <main class="interface" class:con-panel={panelAbierto}>
@@ -352,6 +408,14 @@
       aria-label={NAVEGACION.menu}
     >
       <nav aria-label="Secciones del sitio">
+        <a
+          href="#metodologia"
+          onclick={(evento) => abrirPagina("metodologia", evento)}
+          >{NAVEGACION.metodologia}</a
+        >
+        <a href="#fuentes" onclick={(evento) => abrirPagina("fuentes", evento)}
+          >{NAVEGACION.fuentes}</a
+        >
         <a
           href="#glosario"
           onclick={(evento) => abrirPagina("glosario", evento)}
@@ -386,22 +450,55 @@
     </div>
   {/if}
 
+  <!-- Controles contextuales: variable y región arriba a la izquierda; el
+       país pulsado se anida debajo para no repartir elementos por la pantalla. -->
+  <div class="hud hud--variables">
+    <VariableMenu
+      variables={variablesDisponibles}
+      activa={variableActiva}
+      cargadas={variablesCargadas}
+      {regiones}
+      {regionActiva}
+      onCambiarVariable={(id) => void cambiarVariable(id)}
+      onCambiarRegion={(id) => void cambiarRegion(id)}
+    />
+    {#if paisSeleccionado}
+      <div class="hud__chip">
+        <PaisChip
+          nombre={paisSeleccionado.pais.nombre}
+          regionNombre={paisSeleccionado.region?.nombre ?? null}
+          onCerrar={() => (paisSeleccionado = null)}
+        />
+      </div>
+    {/if}
+  </div>
+
   <!-- Vista inicial: solo globo + leyenda y línea de tiempo abajo a la izquierda. -->
   <div class="stage">
     <div class="dock">
-      <div class="legend-slot">
-        <GlobeLegend />
-      </div>
-      {#if datos}
-        <div class="timeline-slot">
-          <TimelineControl
-            inicio={datos.periodo.inicio}
-            fin={datos.periodo.fin}
-            bind:anio
-            disponible={anualesDisponibles}
-            aviso={APP.avisoSinSerie}
-          />
+      <button
+        type="button"
+        class="dock__toggle"
+        aria-expanded={controlesAbiertos}
+        onclick={() => (controlesAbiertos = !controlesAbiertos)}
+      >
+        {controlesAbiertos ? APP.cerrarControles : APP.abrirControles}
+      </button>
+      {#if controlesAbiertos}
+        <div class="legend-slot">
+          <GlobeLegend />
         </div>
+        {#if datos}
+          <div class="timeline-slot">
+            <TimelineControl
+              inicio={datos.periodo.inicio}
+              fin={datos.periodo.fin}
+              bind:anio
+              disponible={anualesDisponibles}
+              aviso={APP.avisoSinSerie}
+            />
+          </div>
+        {/if}
       {/if}
       {#if !panelAbierto}
         <button type="button" class="open-panel" onclick={abrirPanel}
@@ -424,14 +521,7 @@
           onSeleccionar={(id) => (idSeleccionado = id)}
           onVolver={() => (idSeleccionado = null)}
           onReintentar={cargar}
-          {regiones}
-          {regionActiva}
-          onCambiarRegion={(id) => void cambiarRegion(id)}
-          variables={variablesDisponibles}
-          {variableActiva}
-          {variablesCargadas}
           {preparacion}
-          onCambiarVariable={(id) => void cambiarVariable(id)}
           {recorridoActivo}
           onRecorrido={() => datos && void iniciarRecorrido(datos.pares)}
           onEnfocarRegion={enfocarRegion}
@@ -445,9 +535,15 @@
 
 {#if pagina}
   <div class="page-layer" role="dialog" aria-modal="true">
-    {#if pagina === "glosario"}<Glosario
-        onCerrar={() => cerrarPagina()}
-      />{:else}<AcercaDe onCerrar={() => cerrarPagina()} />{/if}
+    {#if pagina === "metodologia"}
+      <Metodologia onCerrar={() => cerrarPagina()} />
+    {:else if pagina === "fuentes"}
+      <Fuentes onCerrar={() => cerrarPagina()} />
+    {:else if pagina === "glosario"}
+      <Glosario onCerrar={() => cerrarPagina()} />
+    {:else}
+      <AcercaDe onCerrar={() => cerrarPagina()} />
+    {/if}
   </div>
 {/if}
 
@@ -560,6 +656,46 @@
     width: 100%;
   }
 
+  /* Controles flotantes: no interceptan el puntero salvo en sus propios
+     controles, para dejar libres la órbita y la pulsación del globo. */
+  .hud {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .hud--variables {
+    top: 74px;
+    left: 42px;
+    width: min(320px, calc(100vw - 84px));
+  }
+
+  .hud__chip {
+    margin-top: 8px;
+  }
+
+  .dock__toggle,
+  .open-panel,
+  .rail-close {
+    padding: 8px 12px;
+    border: 1px solid var(--muted);
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    font: 10px var(--mono);
+    color: var(--ink);
+    pointer-events: auto;
+  }
+
+  .dock__toggle {
+    justify-self: start;
+  }
+
+  .dock__toggle:hover,
+  .dock__toggle:focus-visible {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
   .rail-slot,
   .legend-slot,
   .timeline-slot {
@@ -641,6 +777,12 @@
     .site-menu {
       right: 24px;
     }
+
+    .hud--variables {
+      top: 64px;
+      left: 24px;
+      width: min(320px, calc(100vw - 48px));
+    }
   }
 
   @media (max-width: 650px) {
@@ -648,6 +790,13 @@
       top: 64px;
       right: 17px;
       width: min(300px, calc(100vw - 34px));
+    }
+
+    .hud--variables {
+      top: 64px;
+      right: 17px;
+      left: 17px;
+      width: auto;
     }
 
     .stage {

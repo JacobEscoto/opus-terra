@@ -8,12 +8,20 @@
     type CeldaTendencia,
   } from "../three/tendenciaLayer";
   import { quitarEtiquetas } from "../three/etiquetasLayer";
+  import { pintarMapa } from "../three/mapaLayer";
+  import type { PaisGeo } from "../geo/paises";
 
   type FocusOn = (lat: number, lon: number, duracion: number) => Promise<void>;
 
   interface PropiedadesComponente {
     /** Fires with the latitude/longitude under the pointer, or null when off-globe. */
     onTelemetry?: (telemetry: EarthTelemetry | null) => void;
+    /** Pulsación simple sobre un punto del planeta. */
+    onSelect?: (lat: number, lon: number) => void;
+    /** Territorios que se dibujan como fronteras. */
+    geo?: PaisGeo[];
+    /** País resaltado. */
+    seleccion?: PaisGeo | null;
     /** Texture download progress, 0 → 1. */
     onProgress?: (ratio: number) => void;
     onReady?: (
@@ -35,6 +43,7 @@
 
   let {
     onTelemetry,
+    onSelect,
     onProgress,
     onReady,
     onInteraction,
@@ -45,6 +54,8 @@
     anio = 0,
     anios = [],
     escalaMaxima = 1,
+    geo = [],
+    seleccion = null,
   }: PropiedadesComponente = $props();
 
   let canvas: HTMLCanvasElement;
@@ -84,6 +95,7 @@
     const scene = new EarthScene({
       canvas,
       onTelemetry,
+      onSelect,
       onProgress,
       onInteraction,
       horizontalOffset,
@@ -127,6 +139,14 @@
   $effect(() => {
     const anioActivo = anio;
     if (sceneRef && capaVisible) actualizarColores(anioActivo);
+  });
+
+  // Fronteras y país seleccionado: se repintan al llegar el GeoJSON o al
+  // cambiar la selección, sin tocar la capa de tendencias.
+  $effect(() => {
+    const scene = sceneRef;
+    if (!scene) return;
+    pintarMapa(scene.getOverlayRoot(), geo, seleccion);
   });
 </script>
 

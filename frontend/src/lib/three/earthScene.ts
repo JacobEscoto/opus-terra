@@ -38,6 +38,8 @@ export interface EarthSceneOptions {
   dataMode?: boolean;
   onProgress?: (ratio: number) => void;
   onTelemetry?: (telemetry: EarthTelemetry | null) => void;
+  /** Pulsación simple sobre la superficie, sin arrastrar. */
+  onSelect?: (lat: number, lon: number) => void;
   onInteraction?: () => void;
 }
 
@@ -98,6 +100,7 @@ export class EarthScene {
   private readonly pointer = new THREE.Vector2();
   private readonly originalReleasePointerCapture: (pointerId: number) => void;
   private earthMesh: THREE.Mesh | null = null;
+  private downInfo: { x: number; y: number; t: number } | null = null;
 
   private frame = 0;
   private lastTime = 0;
@@ -306,6 +309,8 @@ export class EarthScene {
     this.handleVisibility = this.handleVisibility.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
+    this.handlePointerDown = this.handlePointerDown.bind(this);
+    this.handlePointerUp = this.handlePointerUp.bind(this);
     this.tick = this.tick.bind(this);
     this.handleControlStart = this.handleControlStart.bind(this);
     this.controls.addEventListener("start", this.handleControlStart);
@@ -314,6 +319,8 @@ export class EarthScene {
     document.addEventListener("visibilitychange", this.handleVisibility);
     options.canvas.addEventListener("pointermove", this.handlePointerMove);
     options.canvas.addEventListener("pointerleave", this.handlePointerLeave);
+    options.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    options.canvas.addEventListener("pointerup", this.handlePointerUp);
     this.resizeObserver = new ResizeObserver(this.handleResize);
     this.resizeObserver.observe(options.canvas);
 
@@ -682,32 +689,63 @@ export class EarthScene {
    * rotating under the cursor, so the readout follows whatever is under the
    * pointer right now.
    */
-  private handlePointerMove(event: PointerEvent) {
-    if (!this.earthMesh || !this.options.onTelemetry) return;
+  /** Convierte el puntero en lat/lon sobre la superficie, o null si no toca. */
+  private latLonDesdeEvento(event: PointerEvent): EarthTelemetry | null {
+    if (!this.earthMesh) return null;
 
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return null;
 
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hit = this.raycaster.intersectObject(this.earthMesh, false)[0];
-    if (!hit) {
-      this.options.onTelemetry(null);
-      return;
-    }
+    if (!hit) return null;
 
     const local = this.earthMesh.worldToLocal(hit.point.clone()).normalize();
     const lat =
       90 - Math.acos(THREE.MathUtils.clamp(local.y, -1, 1)) * (180 / Math.PI);
     const lon = Math.atan2(-local.z, local.x) * (180 / Math.PI);
+    return { lat, lon };
+  }
 
-    this.options.onTelemetry({ lat, lon });
+  private handlePointerMove(event: PointerEvent) {
+    if (!this.options.onTelemetry) return;
+    this.options.onTelemetry(this.latLonDesdeEvento(event));
   }
 
   private handlePointerLeave() {
     this.options.onTelemetry?.(null);
+    this.downInfo = null;
+  }
+
+  /**
+   * Registra el inicio de un posible toque. OrbitControls gestiona el arrastre;
+   * aquí solo se anota dónde y cuándo empezó para distinguir pulsar de mover.
+   */
+  private handlePointerDown(event: PointerEvent) {
+    this.downInfo = {
+      x: event.clientX,
+      y: event.clientY,
+      t: performance.now(),
+    };
+  }
+
+  private handlePointerUp(event: PointerEvent) {
+    const inicio = this.downInfo;
+    this.downInfo = null;
+    if (!inicio || !this.options.onSelect) return;
+
+    const movimiento = Math.hypot(
+      event.clientX - inicio.x,
+      event.clientY - inicio.y,
+    );
+    const duracion = performance.now() - inicio.t;
+    if (movimiento > 6 || duracion > 600) return;
+
+    const punto = this.latLonDesdeEvento(event);
+    if (punto) this.options.onSelect(punto.lat, punto.lon);
   }
 
   private tick(now: number) {
@@ -771,6 +809,8 @@ export class EarthScene {
     document.removeEventListener("visibilitychange", this.handleVisibility);
     this.canvas.removeEventListener("pointermove", this.handlePointerMove);
     this.canvas.removeEventListener("pointerleave", this.handlePointerLeave);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
     this.resizeObserver.disconnect();
 
     this.labelRenderer.domElement.remove();
