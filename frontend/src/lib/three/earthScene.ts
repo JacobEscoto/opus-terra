@@ -191,11 +191,16 @@ export class EarthScene {
 
     this.earthMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.82,
-      metalness: 0,
+      roughness: 0.85,
+      metalness: 0.02,
       roughnessMap: null,
       normalMap: null,
-      normalScale: new THREE.Vector2(0.2, 0.2),
+      normalScale: new THREE.Vector2(1.2, 1.2),
+
+      displacementMap: null,
+      displacementScale: 0.004,
+      displacementBias: -0.0015,
+
       emissive: 0xffffff,
       emissiveIntensity: 1,
       envMapIntensity: 0.55,
@@ -354,7 +359,7 @@ export class EarthScene {
     this.tiltGroup.add(this.spinGroup);
     this.scene.add(this.tiltGroup);
 
-    const geometry = new THREE.SphereGeometry(PLANET_RADIUS, 160, 96);
+    const geometry = new THREE.SphereGeometry(PLANET_RADIUS, 256, 128);
     this.disposables.push(geometry);
 
     const earth = new THREE.Mesh(geometry, this.earthMaterial);
@@ -604,13 +609,16 @@ export class EarthScene {
     this.earthMaterial.map = day;
     this.earthMaterial.emissiveMap = night;
     this.earthMaterial.emissiveIntensity = 1.25;
+
     const roughness = createRoughnessFromSpecular(
       specular.image as HTMLImageElement,
     );
     this.earthMaterial.roughnessMap = roughness;
     this.disposables.push(roughness);
     specular.dispose();
+
     this.earthMaterial.normalMap = normal;
+    this.earthMaterial.displacementMap = normal;
     this.earthMaterial.needsUpdate = true;
 
     const clouds = createCloudTexture(cloudsImage);
