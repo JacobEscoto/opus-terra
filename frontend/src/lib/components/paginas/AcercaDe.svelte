@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { ACERCA, APP, NAVEGACION } from "../../data/textos";
+  import { ACERCA, NAVEGACION } from "../../data/textos";
   import Fa from "svelte-fa";
   import { faGithub } from "@fortawesome/free-brands-svg-icons";
+  import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
   interface PropiedadesComponente {
     onCerrar: () => void;
   }
@@ -12,13 +13,21 @@
 
 <article class="page">
   <div class="page__top">
-    <button type="button" onclick={onCerrar}>{NAVEGACION.volver}</button>
+    <button type="button" onclick={onCerrar}>
+      <Fa icon={faArrowLeft} />
+      <span>{NAVEGACION.volver}</span>
+    </button>
   </div>
-  <header>
-    <p class="page__kicker">{APP.marca}</p>
-    <h1>{ACERCA.titulo}</h1>
-    {#each ACERCA.parrafos as parrafo}<p class="intro">{parrafo}</p>{/each}
+  
+  <header class="page-header">
+    <div class="header-content">
+      <h1>{ACERCA.titulo}</h1>
+      <div class="intro-block">
+        {#each ACERCA.parrafos as parrafo}<p class="intro">{parrafo}</p>{/each}
+      </div>
+    </div>
   </header>
+
   <section>
     <h2>{ACERCA.fuentesTitulo}</h2>
     <div>
@@ -36,18 +45,22 @@
       </p>
     </div>
   </section>
+
   <section>
     <h2>{ACERCA.integrantesTitulo}</h2>
     <ul class="integrantes">
       {#each ACERCA.integrantes as integrante}<li>{integrante}</li>{/each}
     </ul>
   </section>
-  <a
-    class="repository"
-    href="https://github.com/JacobEscoto/opus-terra"
-    rel="relreferrer"
-    target="_blank"><Fa icon={faGithub} /></a
-  >
+
+  <div class="repository-wrapper">
+    <a
+      class="repository"
+      href="https://github.com/JacobEscoto/opus-terra"
+      rel="noreferrer"
+      target="_blank"><Fa icon={faGithub} /></a
+    >
+  </div>
 </article>
 
 <style>
@@ -63,36 +76,49 @@
     margin-bottom: clamp(60px, 12vh, 130px);
   }
   .page__top button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     border: 0;
     border-bottom: 1px solid var(--amber);
     padding: 0 0 5px;
     background: transparent;
     font: 10px var(--mono);
     color: var(--ink);
+    cursor: pointer;
   }
-  header {
-    max-width: 680px;
+  
+  /* Layout mejorado para el header y sus párrafos */
+  .page-header {
+    max-width: 720px;
     padding-bottom: 45px;
     border-bottom: 1px solid var(--hairline);
   }
-  .page__kicker {
-    margin-bottom: 17px;
-    color: var(--amber);
-    font: 10px var(--mono);
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
   }
   h1 {
     font-size: clamp(2.4rem, 7vw, 5rem);
     font-weight: 350;
     letter-spacing: -0.07em;
     line-height: 0.95;
+    margin: 0;
+  }
+  .intro-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
   .intro {
-    max-width: 52ch;
-    margin-top: 24px;
+    max-width: 58ch;
+    margin: 0;
     color: var(--muted);
     font-size: 15px;
     line-height: 1.65;
   }
+
   section {
     display: grid;
     grid-template-columns: minmax(160px, 0.7fr) 1.5fr;
@@ -137,8 +163,15 @@
     break-inside: avoid;
   }
 
+  .repository-wrapper {
+    margin-top: 30px;
+  }
+
   .repository {
-    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 20px;
+    text-decoration: none;
   }
 
   @media (max-width: 650px) {

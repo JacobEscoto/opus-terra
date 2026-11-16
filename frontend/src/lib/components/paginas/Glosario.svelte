@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { APP, GLOSARIO, NAVEGACION } from "../../data/textos";
+  import { GLOSARIO, NAVEGACION } from "../../data/textos";
+  import Fa from "svelte-fa";
+  import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
   interface PropiedadesComponente {
     onCerrar: () => void;
   }
@@ -10,10 +12,12 @@
 
 <article class="page">
   <div class="page__top">
-    <button type="button" onclick={onCerrar}>{NAVEGACION.volver}</button>
+    <button type="button" onclick={onCerrar}>
+      <Fa icon={faArrowLeft} />
+      {NAVEGACION.volver}
+    </button>
   </div>
   <header>
-    <p class="page__kicker">{APP.marca}</p>
     <h1>{GLOSARIO.titulo}</h1>
     <p class="page__intro">{GLOSARIO.introduccion}</p>
   </header>
@@ -49,11 +53,6 @@
     max-width: 680px;
     padding-bottom: 45px;
     border-bottom: 1px solid var(--hairline);
-  }
-  .page__kicker {
-    margin-bottom: 17px;
-    color: var(--amber);
-    font: 10px var(--mono);
   }
   h1 {
     font-size: clamp(2.4rem, 7vw, 5rem);

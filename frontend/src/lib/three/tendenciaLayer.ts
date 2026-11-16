@@ -31,7 +31,6 @@ let altoCelda = 0.5;
 const COLOR_FRIO = new THREE.Color("#3988c2");
 const COLOR_NEUTRO = new THREE.Color("#d9d4c8");
 const COLOR_CALIDO = new THREE.Color("#d99435");
-const COLOR_NO_SIGNIFICATIVO = "#8b929b";
 
 /** Convierte coordenadas geográficas a la convención usada por el globo. */
 export function latLonToSpherePosition(
@@ -74,19 +73,24 @@ function pintarCanvas(anio: number) {
   const contexto = lienzoActual.getContext("2d");
   if (!contexto) return;
   contexto.clearRect(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+
   const indiceAnio = aniosActuales.indexOf(anio);
   const color = new THREE.Color();
+
   for (const celda of celdasActuales) {
+    // Si la celda no es significativa, la saltamos para que no dibuje ningún recuadro de fondo
+    if (!celda.significativa_fdr) continue;
+
     const valor =
       indiceAnio >= 0 && celda.valores_anuales?.[indiceAnio] !== undefined
         ? celda.valores_anuales[indiceAnio]
         : celda.sen_unidad_por_anio;
-    contexto.fillStyle = celda.significativa_fdr
-      ? (() => {
-          colorParaValor(valor, color);
-          return `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
-        })()
-      : COLOR_NO_SIGNIFICATIVO;
+
+    colorParaValor(valor, color);
+
+    // Usamos rgba con opacidad (ej. 0.75) para que el color se sobreponga sin tapar el país
+    contexto.fillStyle = `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, 0.75)`;
+
     const x = ((celda.lon + 180) / 360) * TEXTURE_WIDTH;
     const y = ((90 - celda.lat) / 180) * TEXTURE_HEIGHT;
     const mitadX = ((anchoCelda / 360) * TEXTURE_WIDTH) / 2;
@@ -95,6 +99,7 @@ function pintarCanvas(anio: number) {
     const arriba = Math.floor(y - mitadY);
     const derecha = Math.max(izquierda + 1, Math.ceil(x + mitadX));
     const abajo = Math.max(arriba + 1, Math.ceil(y + mitadY));
+
     contexto.fillRect(izquierda, arriba, derecha - izquierda, abajo - arriba);
   }
   texturaActual!.needsUpdate = true;
@@ -135,13 +140,15 @@ export function agregarCapa(
   texturaActual = new THREE.CanvasTexture(lienzoActual);
   texturaActual.colorSpace = THREE.SRGBColorSpace;
   texturaActual.needsUpdate = true;
+
   const material = new THREE.MeshBasicMaterial({
     map: texturaActual,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.9,
     depthWrite: false,
     toneMapped: false,
   });
+
   const geometria = new THREE.SphereGeometry(LAYER_RADIUS, 128, 64);
   capaActual = new THREE.Mesh(geometria, material);
   capaActual.name = "tendencias-t2m";
