@@ -22,14 +22,16 @@ El proyecto no sustituye una medición directa. Presenta resultados de análisis
 ## Qué hace la app hoy
 
 - **Globo 3D interactivo.** Muestra sobre la superficie de la Tierra las zonas donde el cambio es claro.
-- **Selector de variables.** Permite elegir entre temperatura del aire, precipitación MERRA-2, precipitación IMERG y vegetación (NDVI).
+- **Menú flotante de variables.** Permite elegir entre temperatura del aire, precipitación MERRA-2, precipitación IMERG y vegetación (NDVI) sin abrir el panel de resultados.
+- **Selección de países en el globo.** Al pulsar el territorio de un país, el globo lo resalta, muestra su nombre y su disponibilidad de datos, y cambia de región cuando el punto pulsado cae dentro de su recuadro de datos.
+- **Controles plegables.** La leyenda y la línea de tiempo se guardan detrás de un botón para dejar el globo despejado.
 - **Capa de marcadores que se puede mostrar u ocultar.** El botón «Ocultar» / «Mostrar» quita y devuelve los puntos del globo sin recargar los datos.
 - **Solo se dibujan las tendencias al alza.** El globo y la lista «Celdas significativas» dejan fuera las zonas que van a la baja, aunque el archivo de datos las contenga (ver [`docs/known-bugs.md`](docs/known-bugs.md)).
 - **Lista de pares cuando existen.** Cuando hay zonas con cambio claro en las dos direcciones, el panel lista pares de zonas con tendencias opuestas y permite abrir cada par. Hoy solo la vegetación forma pares.
 - **Tarjetas de región con marca de significancia.** Cada zona del par muestra su nombre, la marca «Alza» o «Bajada», el cambio acumulado en el periodo y sus coordenadas bajo «Ver detalles técnicos».
 - **Línea de tiempo.** Aparece desactivada con el aviso «Esta variable no incluye una serie anual por zona» en las variables que no traen serie anual por zona. Hoy solo temperatura y vegetación la activan, y entonces cambia el año de la capa.
 - **Panel de resultados.** Reúne la frase resumen, la fuente, la unidad, el periodo y la cantidad de zonas analizadas. En el celular se pliega y se abre con «Abrir panel» / «Cerrar panel».
-- **Páginas informativas.** Incluye un glosario, las fuentes de datos y la información del proyecto y sus integrantes.
+- **Páginas informativas.** Incluye metodología, fuentes de datos, glosario y la información del proyecto y sus integrantes.
 - **Diseño adaptable.** La interfaz funciona en pantallas de escritorio y en dispositivos móviles.
 
 La aplicación no ofrece diagnósticos, alertas ni recomendaciones de salud.
@@ -38,7 +40,7 @@ La aplicación no ofrece diagnósticos, alertas ni recomendaciones de salud.
 
 ## Cómo leer un resultado
 
-1. **Elige la variable y la región** en el panel. En el celular, abre primero el panel con «Abrir panel». El globo y el panel cambian juntos.
+1. **Elige la variable y la región.** La variable se cambia en el menú flotante de arriba a la izquierda; la región, en el selector del mismo menú o pulsando un país del globo. En el celular, los controles quedan arriba y el panel de resultados se abre con «Ver análisis».
 2. **Empieza por la frase resumen.** Dice cuántas zonas de la región muestran un cambio claro sobre cuántas se analizaron. En las precipitaciones avisa de que el producto es un promedio de área y no hay zonas que dibujar.
 3. **Cada punto del globo es una zona.** El color va de cambio leve a cambio fuerte, como indica la leyenda del globo. Hoy solo se dibujan las zonas que van al alza; las que van a la baja no aparecen.
 4. **«Alza» y «Bajada» indican la dirección del cambio.** La marca que las acompaña señala que el cambio es lo bastante consistente como para que no parezca casualidad; es la marca de significancia.
